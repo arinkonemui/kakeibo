@@ -1,0 +1,8 @@
+name = "osaihu-note"
+main = "src/index.ts"
+compatibility_date = "2026-02-11"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "kakeibo"
+database_id = "データベースのUUIDを張ってください"
