@@ -278,3 +278,86 @@ curl -H "X-Debug-User: u_A1B2C3D4E5F60718293A4B5C6D7E8F90" \
 ### 残課題 / 次アクション
 - トークン生成ユーティリティで正規 user_id 導出を組み込む（本番運用準備時）
 - 次ステップ: POST /api/monthly（差分保存 + 楽観ロック）の実装
+
+---
+
+## 2026-02-12T23:40+09:00 — Phase 1 / Step 3-Save: POST /api/monthly 実装
+
+### 目的
+差分ベースの保存エンドポイントを実装。楽観ロック（months.version）と編集可能月範囲チェックを含む。
+
+### 変更ファイル
+- `src/save.ts` — 新規作成（POST /api/monthly ハンドラ、バリデーション、トランザクション処理）
+- `src/index.ts` — 変更（POST /api/monthly ルーティング追加）
+- `docs/AGENT_LOG.md` — 追記（本エントリ）
+
+### エンドポイント仕様
+
+- URL: `POST /api/monthly`
+- Body: `{ month_key, expected_version, ops: { create_entries, update_entries, delete_entry_ids, upsert_daily_budgets, delete_daily_budget_dates } }`
+- 成功: `{ ok: true, month_key, new_version, applied: { ... } }`
+- エラー: 400（バリデーション）/ 401（認証）/ 403（編集不可月）/ 409（version競合）
+
+### 主要な設計判断
+
+1. **トランザクション: D1 batch**
+   - `db.batch(stmts)` で全操作をアトミックに実行
+   - ステートメント順序: months INSERT OR IGNORE → version UPDATE (楽観ロック) → entries CUD → daily_budgets CUD
+   - version UPDATE の affected rows が 0 なら 409 Conflict を返却
+
+2. **楽観ロック**
+   - `UPDATE months SET version = version + 1 WHERE ... AND version = expected_version`
+   - months 行が未作成の場合: `INSERT OR IGNORE` で version=0 の行を先に作成
+   - expected_version=0 で初回保存が成立
+
+3. **編集可能月範囲: month_key 単位で6か月**
+   - `getEditableMonthKeys()` で当月 + 過去5か月の Set を生成
+   - 日付差分ではなく `new Date(year, month - 1 - i, 1)` で月キーを算出
+   - 範囲外は 403 `"This month is read-only."`
+
+4. **カテゴリ検証: インメモリ一括チェック**
+   - `SELECT category_id FROM categories WHERE user_id = ?` で1クエリ
+   - 結果を Set に変換し、create/update の全 category_id を検証
+   - FK制約に依存せずアプリ層で明示的に検証（エラーメッセージの制御のため）
+
+5. **entry_id 生成: `crypto.randomUUID()`**
+   - create_entries で entry_id 未指定の場合、サーバ側で UUID を生成
+
+6. **No-op 最適化**
+   - 全 ops が空の場合、DB クエリを一切発行せず即座に成功レスポンスを返却
+   - SPEC §9.4「変更がない場合、保存操作はクエリ発行なし」に準拠
+
+7. **daily_budgets upsert**
+   - `INSERT ... ON CONFLICT(user_id, month_key, date) DO UPDATE SET ...` で実現
+
+8. **delete のスコープ制限**
+   - entries: `WHERE entry_id = ? AND user_id = ? AND month_key = ?`
+   - daily_budgets: `WHERE user_id = ? AND month_key = ? AND date = ?`
+   - 他ユーザー/他月のデータに影響しない
+
+### 動作確認
+
+```bash
+npx tsc --noEmit  # 型エラーなし ✓
+npx wrangler dev
+
+# Test 1: 正常保存（create entry + daily budget）→ 200 ✓
+# Test 2: GET で version=1、entries/daily_budgets 確認 ✓
+# Test 3: 409 Conflict（expected_version=0 で version=1 の月に保存）✓
+# Test 4: 403 Read-only（2020-01 は編集不可）✓
+# Test 5: 400 Invalid month_key ✓
+# Test 6: 400 date mismatch（2026-03-01 で month_key=2026-02）✓
+# Test 7: 401 No auth ✓
+# Test 8: No-op（空 ops）→ 200, version 変化なし ✓
+# Test 9: 日本語 payment_method（QR）→ 200 ✓
+```
+
+### DBクエリ数（保存時）
+- カテゴリ検証: 1クエリ（entry操作がある場合のみ）
+- batch: N+2 ステートメント（months INSERT OR IGNORE + version UPDATE + N個の ops）
+- 合計: 予測可能で最小限
+
+### 残課題 / 次アクション
+- フロントエンド統合（Phase 2: 月間表表示）
+- Windows curl で日本語 payment_method を直接送信するとエンコーディング問題あり（ファイル経由で回避可能、実運用はJSクライアントから送信するため問題なし）
+- 月予算の更新操作は現在未対応（Phase 4 で対応予定）

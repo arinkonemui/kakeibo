@@ -1,4 +1,5 @@
 import { type AuthEnv, AuthError, getAuthUserId } from "./auth";
+import { handlePostMonthly } from "./save";
 
 export interface Env extends AuthEnv {
   DB: D1Database;
@@ -150,6 +151,10 @@ export default {
       const month_key = validateMonthKey(url);
       if (month_key instanceof Response) return month_key;
       return handleGetMonthly(env.DB, user_id, month_key);
+    }
+
+    if (url.pathname === "/api/monthly" && request.method === "POST") {
+      return handlePostMonthly(env.DB, user_id, request);
     }
 
     return errorResponse(404, "Not found.");
