@@ -39,6 +39,7 @@ Do NOT invent or relax requirements.
 - Cache up to 6 months (LRU).
 - TTL: current month 120 minutes, past months 24 hours.
 - On app start/login: always fetch current month once to refresh.
+- Define "6 months" by **month_key (YYYY-MM) units**, not by day-based subtraction.
 
 ### 2.3 Save behavior (critical)
 - Save is **diff-based** (create/update/delete), never overwrite full-month dataset.
@@ -46,6 +47,7 @@ Do NOT invent or relax requirements.
 
 ### 2.4 Editable month range (critical)
 - Users can edit up to the most recent 6 months (current month + previous 5 months).
+- Determine the range by **month_key (YYYY-MM) units**, not by day-based subtraction.
 - Months older than that are read-only (view/export/archive CSV view only).
 - Enforce this on both server side (API validation) and client side (UI disabling).
 
