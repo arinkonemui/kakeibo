@@ -1,4 +1,6 @@
-export interface Env {
+import { type AuthEnv, AuthError, getAuthUserId } from "./auth";
+
+export interface Env extends AuthEnv {
   DB: D1Database;
 }
 
@@ -59,17 +61,12 @@ interface MonthlyDatasetResponse {
 
 const MONTH_KEY_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
-function validateMonthlyParams(url: URL): { user_id: string; month_key: string } | Response {
-  const user_id = url.searchParams.get("user_id");
+function validateMonthKey(url: URL): string | Response {
   const month_key = url.searchParams.get("month_key");
-
-  if (!user_id || user_id.trim() === "") {
-    return errorResponse(400, "user_id is required.");
-  }
   if (!month_key || !MONTH_KEY_RE.test(month_key)) {
     return errorResponse(400, "month_key must be in YYYY-MM format.");
   }
-  return { user_id, month_key };
+  return month_key;
 }
 
 function errorResponse(status: number, message: string): Response {
@@ -137,10 +134,22 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
+    // --- Auth: derive user_id from request ---
+    let user_id: string;
+    try {
+      user_id = await getAuthUserId(request, env);
+    } catch (e) {
+      if (e instanceof AuthError) {
+        return errorResponse(e.status, e.message);
+      }
+      return errorResponse(500, "Internal Server Error");
+    }
+
+    // --- Routing ---
     if (url.pathname === "/api/monthly" && request.method === "GET") {
-      const validated = validateMonthlyParams(url);
-      if (validated instanceof Response) return validated;
-      return handleGetMonthly(env.DB, validated.user_id, validated.month_key);
+      const month_key = validateMonthKey(url);
+      if (month_key instanceof Response) return month_key;
+      return handleGetMonthly(env.DB, user_id, month_key);
     }
 
     return errorResponse(404, "Not found.");

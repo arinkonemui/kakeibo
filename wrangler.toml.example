@@ -6,3 +6,11 @@ compatibility_date = "2026-02-11"
 binding = "DB"
 database_name = "kakeibo"
 database_id = "データベースのUUIDを張ってください"
+
+# --- Auth settings ---
+# DEV_MODE = "true"  # ローカル開発時のみ有効化（X-Debug-User ヘッダーで認証）
+# AUTH_SECRET = ""    # 本番用 HMAC 署名シークレット（wrangler secret で設定推奨）
+
+[vars]
+# ローカル開発時は DEV_MODE を有効にする
+# DEV_MODE = "true"
