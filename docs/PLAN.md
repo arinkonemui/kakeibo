@@ -23,6 +23,8 @@
 - docs/AGENT_LOG.md を作成（追記式で運用開始）
 
 ### Phase 2: 月間（メイン）表示
+- フロントは React + TypeScript（Vite）で実装する
+- ローカル開発（A案）：Vite dev server の proxy で `/api/*` → `http://127.0.0.1:8787` に転送し、CORS無しで開発する
 - 1ヶ月データセット取得（months + entries + daily_budgets + categories）
 - 月間表（縦:日付 / 横:カテゴリ）表示
   - 右端：日合算列固定

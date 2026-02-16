@@ -23,6 +23,12 @@
 - 複数ユーザー利用前提（ユーザーごとに完全分離）
 - 無駄なDBアクセスを抑え、Cloudflare（D1 + Workers/Pages）で運用しやすくする
 
+## 1.1 技術スタック / 配置（運用前提）
+- フロントエンド：React + TypeScript（Vite）
+- ホスティング：Cloudflare Pages（osaifunote.arinkolab.com）
+- API：Cloudflare Workers（同一ホスト配下 `/api/*` を Worker にルーティングして同居）
+- フロントからのAPI呼び出しは相対パス `/api/...` を必須とする（CORS回避・環境差分回避）
+
 ## 2. 画面構成（タブ）
 1. 月間（メイン）
 2. 週間（ビュー切替）

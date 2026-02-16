@@ -1,0 +1,232 @@
+/* --- Reset & Base --- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --color-primary: #ff9f43;
+  --color-accent: #ff6b6b;
+  --color-warm: #f7c59f;
+  --color-paper: #fffaf0;
+  --color-text: #333;
+  --color-border: #ddd;
+  --color-header-bg: #fff8f0;
+}
+
+body {
+  font-family: "Hiragino Kaku Gothic ProN", "Meiryo", "Noto Sans JP",
+    sans-serif;
+  background: var(--color-paper);
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+/* --- App Layout --- */
+.app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.app-header {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.app-header h1 {
+  color: var(--color-primary);
+  font-size: 1.6rem;
+}
+
+.catchphrase {
+  color: #888;
+  font-size: 0.85rem;
+}
+
+/* --- Dev Bar --- */
+.dev-bar {
+  background: #ffe8cc;
+  border: 1px dashed var(--color-primary);
+  padding: 6px 12px;
+  margin-bottom: 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dev-bar input {
+  font-family: monospace;
+  font-size: 0.8rem;
+  padding: 2px 6px;
+}
+
+.dev-bar button {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 3px 10px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.dev-hint {
+  color: #999;
+  font-size: 0.75rem;
+}
+
+/* --- Month Selector --- */
+.month-selector {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.month-selector input[type="month"] {
+  font-size: 1rem;
+  padding: 4px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+}
+
+.month-selector button {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.month-selector button:hover {
+  opacity: 0.85;
+}
+
+/* --- Status --- */
+.status {
+  text-align: center;
+  padding: 12px;
+  color: #888;
+}
+
+.status.error {
+  color: var(--color-accent);
+}
+
+/* --- Month Summary --- */
+.month-summary {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.summary-item {
+  font-size: 0.95rem;
+}
+
+/* --- Monthly Table --- */
+.table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+}
+
+.monthly-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.monthly-table th,
+.monthly-table td {
+  border: 1px solid var(--color-border);
+  padding: 4px 8px;
+  text-align: center;
+}
+
+.monthly-table thead th {
+  background: var(--color-header-bg);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.cell-amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.col-day {
+  width: 36px;
+  min-width: 36px;
+}
+
+.col-dow {
+  width: 28px;
+  min-width: 28px;
+}
+
+.col-total {
+  min-width: 80px;
+  background: var(--color-header-bg);
+}
+
+/* Sticky columns */
+.sticky-left {
+  position: sticky;
+  left: 0;
+  background: var(--color-paper);
+  z-index: 1;
+}
+
+.sticky-left-2 {
+  position: sticky;
+  left: 36px;
+  background: var(--color-paper);
+  z-index: 1;
+}
+
+.sticky-right {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+}
+
+/* Rows */
+.row-weekend {
+  background: #fff5f0;
+}
+
+.row-weekend .sticky-left,
+.row-weekend .sticky-left-2 {
+  background: #fff5f0;
+}
+
+.row-totals {
+  background: var(--color-header-bg);
+}
+
+.row-totals td {
+  border-top: 2px solid var(--color-primary);
+}
+
+/* --- Empty state --- */
+.empty-message {
+  text-align: center;
+  padding: 24px;
+  color: #aaa;
+}

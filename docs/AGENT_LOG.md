@@ -361,3 +361,101 @@ npx wrangler dev
 - フロントエンド統合（Phase 2: 月間表表示）
 - Windows curl で日本語 payment_method を直接送信するとエンコーディング問題あり（ファイル経由で回避可能、実運用はJSクライアントから送信するため問題なし）
 - 月予算の更新操作は現在未対応（Phase 4 で対応予定）
+
+---
+
+## 2026-02-14T23:00+09:00 — Phase 2 / Step 1-Frontend Read: 月間テーブル表示（フロントエンド）
+
+### 目的
+React + TypeScript フロントエンドを新規作成し、GET /api/monthly のデータを月間テーブルとして表示する。
+
+### フォルダ構成
+```
+web/                        ← 新規ディレクトリ（フロントエンド）
+├── package.json            ← osaihu-note-web（Vite + React 19）
+├── tsconfig.json
+├── vite.config.ts          ← proxy: /api → http://127.0.0.1:8787
+├── index.html              ← SPA エントリ（ブランディング文言使用）
+└── src/
+    ├── main.tsx            ← React createRoot
+    ├── vite-env.d.ts
+    ├── index.css           ← 暖色系カラーパレット準拠
+    ├── types.ts            ← API レスポンス型定義
+    ├── api.ts              ← fetch wrapper + X-Debug-User dev ヘッダー
+    ├── useMonthly.ts       ← データ取得 hook
+    ├── App.tsx             ← 月選択 + テーブル統合
+    ├── MonthlyTable.tsx    ← 月間表（日×カテゴリ、支出のみ）
+    └── DevUserBar.tsx      ← ローカル専用 dev user_id 入力
+```
+
+### 変更ファイル
+- `web/` 配下全ファイル — 新規作成
+- `.gitignore` — `web/dist/` 追加
+
+### 主要な設計判断
+
+1. **テーブル表示: 支出のみ（SPEC §3.1 準拠）**
+   - `entries` のうち `type === 'expense'` のみを集計
+   - カテゴリ列は `is_active=1` かつ `kind='expense'|'both'` のみ表示
+   - 収入は月間表から除外（集計タブで後日対応）
+
+2. **セル値: 同一日×カテゴリの expense amount 合計**
+   - 1セル = `SUM(amount) WHERE date=X AND category_id=Y AND type='expense'`
+   - 0 の場合は空セル表示
+
+3. **日合算列: 右端に固定表示（sticky-right CSS）**
+   - SPEC §3.1「右端に日合算列を固定表示（横スクロールしても常に見える）」準拠
+   - 日・曜日列も左に sticky 固定
+
+4. **カテゴリ合算行: テーブル最下部 (tfoot)**
+   - 各カテゴリの月内支出合計を表示
+
+5. **Vite proxy: `/api` → `http://127.0.0.1:8787`**
+   - 本番と同じ相対パスでAPI呼び出し（CORS不要）
+   - RULES §2.4 準拠
+
+6. **X-Debug-User ヘッダー（dev専用）**
+   - `DevUserBar` コンポーネントでローカル開発時のみ表示
+   - `window.location.hostname` が `localhost` or `127.0.0.1` の場合のみ
+   - localStorage に保存、本番には一切影響しない
+   - user_id は正規形式 `u_` + 32桁hex を想定
+
+7. **空データ対応**
+   - `month: null` の場合もテーブルは表示（全セル空）
+   - 「この月のデータはまだありません。」メッセージ表示
+
+8. **カラーパレット**
+   - SPEC のカラー方針に基づき暖色系で統一
+   - `--color-primary: #FF9F43`, `--color-accent: #FF6B6B`, `--color-warm: #F7C59F`
+   - ペーパーカラー: `#FFFAF0`
+
+### 動作確認手順
+
+```bash
+# ターミナル1: API サーバ起動
+cd /path/to/006.家計簿
+npx wrangler dev
+
+# ターミナル2: フロントエンド起動
+cd /path/to/006.家計簿/web
+npm run dev
+# → http://localhost:5173 で開く
+
+# ブラウザで確認:
+# 1. DevUserBar に u_a1b2c3d4e5f60718293a4b5c6d7e8f90 を入力→「設定」
+# 2. 月選択で 2026-02 を選択
+# 3. Network タブで GET /api/monthly?month_key=2026-02 が飛ぶことを確認
+# 4. X-Debug-User ヘッダーが含まれていることを確認
+# 5. テーブルが表示される（データなしの場合は空テーブル＋メッセージ）
+```
+
+### 検証結果
+- `npx tsc -b` — 型エラーなし ✓
+- `npx vite build` — ビルド成功（dist/ 生成）✓
+- バンドルサイズ: JS 200KB (gzip 63KB), CSS 2.7KB (gzip 1KB)
+
+### 残課題 / 次アクション
+- LRU キャッシュ（6ヶ月、TTL）は未実装（Phase 2 の後続で対応）
+- 保存機能（POST /api/monthly）のUI統合は Phase 3
+- 日予算超過の赤表示は Phase 4（daily_budgets 表示のみ対応済み、超過判定は未実装）
+- 週間ビュー、集計タブ、出力タブは Phase 5-6
