@@ -3,6 +3,10 @@ import type { CategoryRow, EntryRow, MonthlyDataset } from "./types";
 interface Props {
   data: MonthlyDataset;
   monthKey: string;
+  /** Merged entries: server entries + local creates - local deletes */
+  localEntries: EntryRow[];
+  editable: boolean;
+  onCellClick?: (date: string, categoryId: string) => void;
 }
 
 /** Get number of days in a month from YYYY-MM key */
@@ -38,14 +42,14 @@ function buildCellMap(
   return map;
 }
 
-export function MonthlyTable({ data, monthKey }: Props) {
+export function MonthlyTable({ data, monthKey, localEntries, editable, onCellClick }: Props) {
   // Active expense categories only (for table columns)
   const columns: CategoryRow[] = data.categories.filter(
     (c) => c.is_active === 1 && (c.kind === "expense" || c.kind === "both"),
   );
 
   const days = daysInMonth(monthKey);
-  const cellMap = buildCellMap(data.entries);
+  const cellMap = buildCellMap(localEntries);
 
   // Category totals (bottom row)
   const categoryTotals = new Map<string, number>();
@@ -148,8 +152,17 @@ export function MonthlyTable({ data, monthKey }: Props) {
                   </td>
                   {columns.map((c) => {
                     const val = row.cells.get(c.category_id) ?? 0;
+                    const clickable = editable && onCellClick;
                     return (
-                      <td key={c.category_id} className="col-cat cell-amount">
+                      <td
+                        key={c.category_id}
+                        className={`col-cat cell-amount${clickable ? " cell-clickable" : ""}`}
+                        onClick={
+                          clickable
+                            ? () => onCellClick(row.dateStr, c.category_id)
+                            : undefined
+                        }
+                      >
                         {val > 0 ? fmt(val) : ""}
                       </td>
                     );
@@ -186,7 +199,7 @@ export function MonthlyTable({ data, monthKey }: Props) {
         </table>
       </div>
 
-      {data.entries.length === 0 && (
+      {localEntries.length === 0 && (
         <p className="empty-message">この月のデータはまだありません。</p>
       )}
     </div>

@@ -50,3 +50,34 @@ export interface MonthlyDataset {
   entries: EntryRow[];
   daily_budgets: DailyBudgetRow[];
 }
+
+// --- POST /api/monthly types ---
+
+export interface CreateEntryOp {
+  entry_id?: string;
+  date: string;
+  type: "expense" | "income";
+  amount: number;
+  category_id: string;
+  memo?: string | null;
+  payment_method?: string | null;
+}
+
+export interface SaveOps {
+  create_entries?: CreateEntryOp[];
+  delete_entry_ids?: string[];
+}
+
+export interface SaveResponse {
+  ok: true;
+  month_key: string;
+  new_version: number;
+  applied: Record<string, number>;
+}
+
+export interface SaveConflict {
+  conflict: true;
+  message: string;
+}
+
+export type SaveResult = SaveResponse | SaveConflict | { error: string };

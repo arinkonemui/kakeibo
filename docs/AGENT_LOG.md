@@ -459,3 +459,82 @@ npm run dev
 - 保存機能（POST /api/monthly）のUI統合は Phase 3
 - 日予算超過の赤表示は Phase 4（daily_budgets 表示のみ対応済み、超過判定は未実装）
 - 週間ビュー、集計タブ、出力タブは Phase 5-6
+
+---
+
+## 2026-02-16T22:00+09:00 — Phase 2 / Step 2-Frontend Edit+Save: 明細追加・削除・保存 MVP
+
+### 目的
+月間テーブルのセルクリックで明細を追加・削除し、POST /api/monthly で保存するフローを実装する。
+
+### 変更ファイル
+- `web/src/types.ts` — SaveOps, CreateEntryOp, SaveResponse, SaveConflict, SaveResult 型追加
+- `web/src/api.ts` — `saveMonthly()` POST関数追加（409を専用型で返却）
+- `web/src/monthUtils.ts` — **新規**（編集可能月判定、サーバ側と同一ロジック）
+- `web/src/useOpsQueue.ts` — **新規**（操作キュー hook: create/delete を蓄積）
+- `web/src/EntryModal.tsx` — **新規**（セルクリック→明細追加/一覧/削除モーダル）
+- `web/src/MonthlyTable.tsx` — セルクリックハンドラ追加、localEntries props 追加
+- `web/src/App.tsx` — 保存ボタン、409/エラーUI、read-onlyバナー、未保存ガード統合
+- `web/src/index.css` — モーダル、保存バー、バナー、クリッカブルセルのスタイル追加
+
+### 主要な設計判断
+
+1. **操作キュー方式（diff不要）**
+   - ユーザーの追加/削除操作を `useOpsQueue` に蓄積
+   - 保存時に `buildSaveOps()` で SaveOps を構築して POST
+   - full diff 計算は不要。操作が即座に記録される
+
+2. **ローカル状態の即時反映**
+   - `localEntries` = サーバ entries + キュー内 creates − キュー内 deletes
+   - MonthlyTable は `localEntries` から `buildCellMap` するため、追加/削除が即座にテーブル・合計に反映
+
+3. **保存フロー**
+   - 成功(200): キューリセット + refetch で最新データ表示
+   - 409 Conflict: 赤バナー + 「最新データを取得」ボタン
+   - 400/401/403: エラーメッセージ表示
+
+4. **編集可能月ガード（フロントエンド側）**
+   - `isEditableMonth(monthKey)` で当月+過去5ヶ月を判定（month_key単位）
+   - 範囲外: 黄色バナー表示、セルクリック無効、保存バー非表示
+   - サーバ側でも二重チェック（403）
+
+5. **月切替時の未保存ガード**
+   - `isDirty` 状態で月変更 → `confirm()` で確認
+
+6. **MVP制限**
+   - 既存明細の編集(update)は未実装（追加と削除のみ）
+   - daily_budgets / 月予算の操作は未実装
+   - LRU キャッシュは未実装
+
+### 動作確認手順
+
+```bash
+# ターミナル1: API サーバ起動
+cd /path/to/006.家計簿
+npx wrangler dev
+
+# ターミナル2: フロントエンド起動
+cd /path/to/006.家計簿/web
+npm run dev
+# → http://localhost:5173
+
+# ブラウザで確認:
+# 1. DevUserBar に u_a1b2c3d4e5f60718293a4b5c6d7e8f90 を入力→「設定」
+# 2. 2026-02 を選択（編集可能月）
+# 3. テーブルセル（例: 1日×食費）をクリック → モーダル表示
+# 4. 金額 500 入力 → 「追加」→ テーブルに即反映、保存バー出現
+# 5. 「保存」クリック → Network タブで POST /api/monthly 確認 → 200
+# 6. ページリロード → 追加した明細が永続化されている
+# 7. 古い月（例: 2020-01）を開く → 黄色バナー表示、セルクリック不可
+```
+
+### 検証結果
+- `npx tsc -b` — 型エラーなし ✓
+- `npx vite build` — ビルド成功 ✓
+- バンドルサイズ: JS 206KB (gzip 65KB), CSS 5.5KB (gzip 1.5KB)
+
+### 残課題 / 次アクション
+- 既存明細の編集(update) UI は Phase 3 後続で対応
+- LRU キャッシュ（6ヶ月、TTL）は未実装
+- daily_budgets / 月予算の編集は Phase 4
+- 集計タブ、出力タブは Phase 5-6

@@ -1,4 +1,4 @@
-import type { MonthlyDataset } from "./types";
+import type { MonthlyDataset, SaveOps, SaveResult } from "./types";
 
 const DEV_USER_KEY = "osaifu_dev_user_id";
 
@@ -49,4 +49,34 @@ export async function fetchMonthlyDataset(
     );
   }
   return res.json() as Promise<MonthlyDataset>;
+}
+
+/** Save monthly data via POST /api/monthly */
+export async function saveMonthly(
+  monthKey: string,
+  expectedVersion: number,
+  ops: SaveOps,
+): Promise<SaveResult> {
+  const res = await fetch("/api/monthly", {
+    method: "POST",
+    headers: { ...buildHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({
+      month_key: monthKey,
+      expected_version: expectedVersion,
+      ops,
+    }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (res.status === 409) {
+    return {
+      conflict: true,
+      message:
+        (body as { message?: string }).message ??
+        "バージョンが競合しました。最新データを取得してください。",
+    };
+  }
+  if (!res.ok) {
+    return { error: (body as { error?: string }).error ?? `HTTP ${res.status}` };
+  }
+  return body as SaveResult;
 }
