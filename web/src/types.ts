@@ -63,8 +63,19 @@ export interface CreateEntryOp {
   payment_method?: string | null;
 }
 
+export interface UpdateEntryOp {
+  entry_id: string;
+  date: string;
+  type: "expense" | "income";
+  amount: number;
+  category_id: string;
+  memo?: string | null;
+  payment_method?: string | null;
+}
+
 export interface SaveOps {
   create_entries?: CreateEntryOp[];
+  update_entries?: UpdateEntryOp[];
   delete_entry_ids?: string[];
 }
 

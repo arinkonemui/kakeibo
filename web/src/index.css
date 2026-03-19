@@ -431,6 +431,33 @@ body {
   font-size: 0.75rem;
 }
 
+/* 編集中の明細行をハイライト */
+.entry-item--editing {
+  background: #fff8e8;
+  border-radius: 4px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.btn-cancel {
+  background: #aaa;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 16px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.btn-cancel:hover {
+  opacity: 0.85;
+}
+
 .entry-spacer {
   flex: 1;
 }

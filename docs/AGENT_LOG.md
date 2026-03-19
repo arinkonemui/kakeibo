@@ -571,3 +571,33 @@ npm run dev
 
 ### Next Actions
 - Phase 4（予算設定）、Phase 5（集計タブ）、Phase 6（CSV/PDF出力）の実装
+
+---
+
+## 2026-03-19 明細編集（UPDATE）機能追加
+
+### Goal
+Phase 3 の残タスク：既存明細の編集（UPDATE）をフロントエンドに実装。バックエンドは save.ts に update_entries が既に実装済みだったため、フロントのみ追加。
+
+### Files Changed
+- web/src/types.ts: UpdateEntryOp インターフェース追加、SaveOps に update_entries 追加
+- web/src/useOpsQueue.ts: updates キュー追加、updateEntry メソッド追加（ローカル create の直接編集 or サーバーエントリの updates キュー追加）、isDirty/pendingCount/buildSaveOps を更新
+- web/src/EntryModal.tsx: 明細行に「編集」ボタン追加、クリックでインライン編集フォーム表示（金額/メモ/支払方法/種別を編集可能）、onUpdate コールバック追加
+- web/src/App.tsx: handleUpdateEntry コールバック追加、localEntries マージに updates を反映（updateMap）、EntryModal に onUpdate を受け渡し
+- web/src/index.css: .entry-edit-form / .entry-edit-row / .entry-edit-actions スタイル追加
+
+### Key Decisions
+- 日付とカテゴリはセル座標なので編集不可（移動は削除＋新規追加で対応）
+- ローカル create のエントリを編集した場合は creates 配列内を直接変更（不要な update op を送らない）
+- サーバーエントリの編集は updates キューに追加し、同じ entry_id の重複は最新で上書き
+- 削除時に updates キューからも除去（不要な update を送らない）
+
+### Verification
+- 明細一覧の「編集」ボタンでインライン編集フォームが表示されること
+- 金額・メモ・支払方法・種別を編集して「保存」→テーブルに即反映
+- 「キャンセル」で元の表示に戻ること
+- ローカル create の編集→ creates が変更され、update op は発生しない
+- 保存後のサーバー反映を確認（POST /api/monthly の update_entries）
+
+### Next Actions
+- Phase 4（予算設定）、Phase 5（集計タブ）、Phase 6（CSV/PDF出力）の実装

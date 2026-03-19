@@ -5,7 +5,7 @@ import { DevUserBar } from "./DevUserBar";
 import { EntryModal } from "./EntryModal";
 import { isEditableMonth } from "./monthUtils";
 import { MonthlyTable } from "./MonthlyTable";
-import type { CreateEntryOp, EntryRow } from "./types";
+import type { CreateEntryOp, EntryRow, UpdateEntryOp } from "./types";
 import { useMonthly } from "./useMonthly";
 import { useOpsQueue } from "./useOpsQueue";
 
@@ -68,8 +68,25 @@ export function App() {
   const localEntries: EntryRow[] = useMemo(() => {
     if (!data) return [];
     const deleteSet = new Set(ops.queue.deleteIds);
-    // Server entries minus deleted ones
-    const kept = data.entries.filter((e) => !deleteSet.has(e.entry_id));
+    const updateMap = new Map(
+      ops.queue.updates.map((u) => [u.entry_id, u]),
+    );
+    // Server entries minus deleted ones, with updates applied
+    const kept = data.entries
+      .filter((e) => !deleteSet.has(e.entry_id))
+      .map((e) => {
+        const upd = updateMap.get(e.entry_id);
+        if (!upd) return e;
+        return {
+          ...e,
+          date: upd.date,
+          type: upd.type,
+          amount: upd.amount,
+          category_id: upd.category_id,
+          memo: upd.memo ?? null,
+          payment_method: upd.payment_method ?? null,
+        };
+      });
     // Local creates as pseudo-EntryRow
     const created: EntryRow[] = ops.queue.creates.map((c) => ({
       entry_id: c.entry_id!,
@@ -99,6 +116,13 @@ export function App() {
   const handleAddEntry = useCallback(
     (op: CreateEntryOp) => {
       ops.addEntry(op);
+    },
+    [ops],
+  );
+
+  const handleUpdateEntry = useCallback(
+    (op: UpdateEntryOp) => {
+      ops.updateEntry(op);
     },
     [ops],
   );
@@ -265,6 +289,7 @@ export function App() {
           entries={modalEntries}
           localCreateIds={localCreateIds}
           onAdd={handleAddEntry}
+          onUpdate={handleUpdateEntry}
           onDelete={handleDeleteEntry}
           onClose={() => setModal(null)}
         />
