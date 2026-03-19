@@ -538,3 +538,36 @@ npm run dev
 - LRU キャッシュ（6ヶ月、TTL）は未実装
 - daily_budgets / 月予算の編集は Phase 4
 - 集計タブ、出力タブは Phase 5-6
+
+## 2026-03-19 UI改善4点 + カテゴリ管理機能追加
+
+### Goal
+1. 「日合算」→「一日合計」ラベル変更
+2. テーブルセル金額に「¥」プレフィックス追加
+3. 明細一覧の削除ボタンを右端に統一
+4. カテゴリ 追加・編集・削除機能をバックエンド＋フロントエンドで実装
+
+### Files Changed
+- web/src/MonthlyTable.tsx: ①② ヘッダー「一日合計」、金額4箇所に「¥」追加
+- web/src/EntryModal.tsx: ③ スペーサー挿入
+- web/src/index.css: ③ .entry-spacer追加、.entry-memoからflex:1削除、④ CategoryManager スタイル追加、.month-selector-sub追加
+- web/src/api.ts: ④ createCategory/updateCategory/deleteCategory 追加、CategoryRow import追加
+- web/src/CategoryManager.tsx: ④ 新規 UI コンポーネント
+- web/src/App.tsx: ④ CategoryManager 統合、catManagerOpen state追加、ボタン追加
+- src/categories.ts: ④ 新規バックエンドハンドラー
+- src/index.ts: ④ /api/categories ルート追加
+
+### Key Decisions
+- カテゴリ削除はソフトデリート（is_active=0）: entries テーブルの FK 整合性を保ちつつ歴史データを保存
+- CategoryManager はローカル state で楽観的 UI 更新し、API 失敗時はエラー表示
+- カテゴリ変更後は refetch() で月次データセットを再取得（categories が MonthlyDataset に含まれる）
+- 削除ボタン右端統一: .entry-memo の flex:1 を除去し、.entry-spacer { flex: 1 } を memo とボタンの間に挿入
+
+### Verification
+- MonthlyTable: 「一日合計」ヘッダー表示確認
+- MonthlyTable: 金額セルに「¥」表示確認（0円セルは空のまま）
+- EntryModal: メモ有無にかかわらず削除ボタンが右端に揃うことを確認
+- カテゴリ管理: 追加→テーブル列反映、編集→列名更新、削除→列消去を確認
+
+### Next Actions
+- Phase 4（予算設定）、Phase 5（集計タブ）、Phase 6（CSV/PDF出力）の実装

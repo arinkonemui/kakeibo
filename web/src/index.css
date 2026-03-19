@@ -145,7 +145,8 @@ body {
 }
 
 .monthly-table {
-  width: 100%;
+  width: max-content;
+  min-width: 100%;
   border-collapse: collapse;
   font-size: 0.85rem;
   white-space: nowrap;
@@ -162,7 +163,14 @@ body {
   background: var(--color-header-bg);
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: 3; /* 横スティッキー(2)より上 */
+}
+
+/* コーナーセル（縦横両方スティッキー）は最前面 */
+.monthly-table thead th.sticky-left,
+.monthly-table thead th.sticky-left-2,
+.monthly-table thead th.sticky-right {
+  z-index: 4;
 }
 
 .cell-amount {
@@ -180,6 +188,11 @@ body {
   min-width: 28px;
 }
 
+/* 7桁（9,999,999）＋セル padding 分の最小幅 */
+.col-cat {
+  min-width: 90px;
+}
+
 .col-total {
   min-width: 80px;
   background: var(--color-header-bg);
@@ -190,20 +203,20 @@ body {
   position: sticky;
   left: 0;
   background: var(--color-paper);
-  z-index: 1;
+  z-index: 2;
 }
 
 .sticky-left-2 {
   position: sticky;
   left: 36px;
   background: var(--color-paper);
-  z-index: 1;
+  z-index: 2;
 }
 
 .sticky-right {
   position: sticky;
   right: 0;
-  z-index: 1;
+  z-index: 2;
 }
 
 /* Rows */
@@ -401,7 +414,6 @@ body {
 
 .entry-memo {
   color: #888;
-  flex: 1;
 }
 
 .entry-pay {
@@ -417,6 +429,10 @@ body {
   padding: 2px 8px;
   cursor: pointer;
   font-size: 0.75rem;
+}
+
+.entry-spacer {
+  flex: 1;
 }
 
 /* --- Modal form --- */
@@ -458,4 +474,170 @@ body {
 .btn-add:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* --- Category Manager --- */
+.category-manager-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+}
+
+.category-manager {
+  background: #fff;
+  border-radius: 10px;
+  padding: 20px;
+  min-width: 340px;
+  max-width: 500px;
+  width: 90vw;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.category-manager h3 {
+  font-size: 1rem;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cat-list {
+  list-style: none;
+  margin-bottom: 16px;
+}
+
+.cat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px dotted #eee;
+  font-size: 0.85rem;
+}
+
+.cat-item-name {
+  flex: 1;
+  font-weight: bold;
+}
+
+.cat-kind-badge {
+  font-size: 0.7rem;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: #eee;
+  color: #666;
+}
+
+.cat-edit-input {
+  flex: 1;
+  padding: 2px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.btn-cat-edit {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.btn-cat-save {
+  background: #27ae60;
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.btn-cat-cancel {
+  background: #aaa;
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.btn-cat-delete {
+  background: var(--color-accent);
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.cat-form {
+  border-top: 1px solid var(--color-border);
+  padding-top: 12px;
+}
+
+.cat-form h4 {
+  font-size: 0.85rem;
+  color: #888;
+  margin-bottom: 8px;
+}
+
+.cat-form-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.cat-form-row input {
+  flex: 1;
+  min-width: 120px;
+  padding: 4px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.cat-form-row select {
+  padding: 4px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.cat-error {
+  color: var(--color-accent);
+  font-size: 0.8rem;
+  margin-top: 6px;
+}
+
+.btn-open-cat {
+  background: none;
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.btn-open-cat:hover {
+  background: var(--color-warm);
+}
+
+.month-selector-sub {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
 }

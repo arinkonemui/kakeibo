@@ -1,4 +1,5 @@
 import { type AuthEnv, AuthError, getAuthUserId } from "./auth";
+import { handleDeleteCategory, handlePatchCategory, handlePostCategory } from "./categories";
 import { handlePostMonthly } from "./save";
 
 export interface Env extends AuthEnv {
@@ -155,6 +156,21 @@ export default {
 
     if (url.pathname === "/api/monthly" && request.method === "POST") {
       return handlePostMonthly(env.DB, user_id, request);
+    }
+
+    if (url.pathname === "/api/categories" && request.method === "POST") {
+      return handlePostCategory(env.DB, user_id, request);
+    }
+
+    const catMatch = url.pathname.match(/^\/api\/categories\/([^/]+)$/);
+    if (catMatch) {
+      const categoryId = catMatch[1]!;
+      if (request.method === "PATCH") {
+        return handlePatchCategory(env.DB, user_id, categoryId, request);
+      }
+      if (request.method === "DELETE") {
+        return handleDeleteCategory(env.DB, user_id, categoryId);
+      }
     }
 
     return errorResponse(404, "Not found.");

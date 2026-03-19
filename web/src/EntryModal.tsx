@@ -80,6 +80,7 @@ export function EntryModal({
                   {e.payment_method && (
                     <span className="entry-pay">{e.payment_method}</span>
                   )}
+                  <span className="entry-spacer" />
                   <button
                     className="btn-delete"
                     onClick={() =>

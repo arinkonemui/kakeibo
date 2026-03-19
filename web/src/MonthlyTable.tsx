@@ -124,7 +124,7 @@ export function MonthlyTable({ data, monthKey, localEntries, editable, onCellCli
                   {c.name}
                 </th>
               ))}
-              <th className="col-total sticky-right">日合算</th>
+              <th className="col-total sticky-right">一日合計</th>
             </tr>
           </thead>
           <tbody>
@@ -163,13 +163,13 @@ export function MonthlyTable({ data, monthKey, localEntries, editable, onCellCli
                             : undefined
                         }
                       >
-                        {val > 0 ? fmt(val) : ""}
+                        {val > 0 ? `¥${fmt(val)}` : ""}
                       </td>
                     );
                   })}
                   <td className="col-total sticky-right cell-amount">
                     {row.dayTotal > 0 ? (
-                      <strong>{fmt(row.dayTotal)}</strong>
+                      <strong>¥{fmt(row.dayTotal)}</strong>
                     ) : (
                       ""
                     )}
@@ -187,12 +187,12 @@ export function MonthlyTable({ data, monthKey, localEntries, editable, onCellCli
                 const total = categoryTotals.get(c.category_id) ?? 0;
                 return (
                   <td key={c.category_id} className="col-cat cell-amount">
-                    <strong>{total > 0 ? fmt(total) : ""}</strong>
+                    <strong>{total > 0 ? `¥${fmt(total)}` : ""}</strong>
                   </td>
                 );
               })}
               <td className="col-total sticky-right cell-amount">
-                <strong>{fmt(grandTotal)}</strong>
+                <strong>¥{fmt(grandTotal)}</strong>
               </td>
             </tr>
           </tfoot>

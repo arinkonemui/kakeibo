@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { saveMonthly } from "./api";
+import { CategoryManager } from "./CategoryManager";
 import { DevUserBar } from "./DevUserBar";
 import { EntryModal } from "./EntryModal";
 import { isEditableMonth } from "./monthUtils";
@@ -26,6 +27,7 @@ export function App() {
 
   // Modal state
   const [modal, setModal] = useState<ModalState | null>(null);
+  const [catManagerOpen, setCatManagerOpen] = useState(false);
 
   // Save status
   const [saving, setSaving] = useState(false);
@@ -202,6 +204,12 @@ export function App() {
         </button>
       </div>
 
+      <div className="month-selector-sub">
+        <button className="btn-open-cat" onClick={() => setCatManagerOpen(true)}>
+          ⚙ カテゴリ管理
+        </button>
+      </div>
+
       {/* Read-only banner */}
       {!editable && data && (
         <div className="read-only-banner">
@@ -259,6 +267,17 @@ export function App() {
           onAdd={handleAddEntry}
           onDelete={handleDeleteEntry}
           onClose={() => setModal(null)}
+        />
+      )}
+
+      {catManagerOpen && data && (
+        <CategoryManager
+          categories={data.categories}
+          onClose={() => setCatManagerOpen(false)}
+          onRefetch={() => {
+            setCatManagerOpen(false);
+            refetch();
+          }}
         />
       )}
     </div>

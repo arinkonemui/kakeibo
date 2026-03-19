@@ -1,4 +1,4 @@
-import type { MonthlyDataset, SaveOps, SaveResult } from "./types";
+import type { CategoryRow, MonthlyDataset, SaveOps, SaveResult } from "./types";
 
 const DEV_USER_KEY = "osaifu_dev_user_id";
 
@@ -79,4 +79,52 @@ export async function saveMonthly(
     return { error: (body as { error?: string }).error ?? `HTTP ${res.status}` };
   }
   return body as SaveResult;
+}
+
+// --- Category CRUD ---
+
+export async function createCategory(
+  name: string,
+  kind: string,
+): Promise<{ ok: true; category: CategoryRow } | { error: string }> {
+  const res = await fetch("/api/categories", {
+    method: "POST",
+    headers: { ...buildHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ name, kind }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { error: (body as { error?: string }).error ?? `HTTP ${res.status}` };
+  }
+  return body as { ok: true; category: CategoryRow };
+}
+
+export async function updateCategory(
+  categoryId: string,
+  patch: { name?: string; kind?: string; is_active?: number },
+): Promise<{ ok: true; category: CategoryRow } | { error: string }> {
+  const res = await fetch(`/api/categories/${categoryId}`, {
+    method: "PATCH",
+    headers: { ...buildHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { error: (body as { error?: string }).error ?? `HTTP ${res.status}` };
+  }
+  return body as { ok: true; category: CategoryRow };
+}
+
+export async function deleteCategory(
+  categoryId: string,
+): Promise<{ ok: true } | { error: string }> {
+  const res = await fetch(`/api/categories/${categoryId}`, {
+    method: "DELETE",
+    headers: buildHeaders(),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { error: (body as { error?: string }).error ?? `HTTP ${res.status}` };
+  }
+  return { ok: true };
 }
