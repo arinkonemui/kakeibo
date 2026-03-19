@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Wrangler (Backend API)",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["node_modules/wrangler/bin/wrangler.js", "dev"],
+      "port": 8787
+    },
+    {
+      "name": "Vite (Frontend React)",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["web/node_modules/vite/bin/vite.js", "--config", "web/vite.config.ts", "web"],
+      "port": 5173
+    }
+  ]
+}
