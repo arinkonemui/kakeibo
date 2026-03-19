@@ -5,6 +5,8 @@ interface Props {
   monthKey: string;
   /** Merged entries: server entries + local creates - local deletes */
   localEntries: EntryRow[];
+  /** Merged daily budget overrides: server + local ops */
+  localDailyBudgets: Map<string, number>;
   editable: boolean;
   onCellClick?: (date: string, categoryId: string) => void;
 }
@@ -42,7 +44,7 @@ function buildCellMap(
   return map;
 }
 
-export function MonthlyTable({ data, monthKey, localEntries, editable, onCellClick }: Props) {
+export function MonthlyTable({ data, monthKey, localEntries, localDailyBudgets, editable, onCellClick }: Props) {
   // Active expense categories only (for table columns)
   const columns: CategoryRow[] = data.categories.filter(
     (c) => c.is_active === 1 && (c.kind === "expense" || c.kind === "both"),
@@ -90,6 +92,9 @@ export function MonthlyTable({ data, monthKey, localEntries, editable, onCellCli
   const monthlyBudget = data.month?.monthly_budget ?? null;
   const remaining =
     monthlyBudget != null ? monthlyBudget - grandTotal : null;
+  // Default day budget = floor(monthly_budget / days in month)
+  const defaultDayBudget =
+    monthlyBudget != null ? Math.floor(monthlyBudget / days) : null;
 
   return (
     <div className="monthly-table-wrapper">
@@ -124,13 +129,22 @@ export function MonthlyTable({ data, monthKey, localEntries, editable, onCellCli
                   {c.name}
                 </th>
               ))}
-              <th className="col-total sticky-right">一日合計</th>
+              <th className="col-total sticky-right">
+                {defaultDayBudget != null
+                  ? `一日合計(¥${fmt(defaultDayBudget)}/日)`
+                  : "一日合計"}
+              </th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => {
               const dow = new Date(row.dateStr).getDay();
               const isWeekend = dow === 0 || dow === 6;
+              // Effective day budget: override if set, else default
+              const dayBudget =
+                localDailyBudgets.get(row.dateStr) ?? defaultDayBudget;
+              const overBudget =
+                dayBudget != null && row.dayTotal > dayBudget;
               return (
                 <tr
                   key={row.day}
@@ -167,7 +181,9 @@ export function MonthlyTable({ data, monthKey, localEntries, editable, onCellCli
                       </td>
                     );
                   })}
-                  <td className="col-total sticky-right cell-amount">
+                  <td
+                    className={`col-total sticky-right cell-amount${overBudget ? " cell-over-budget" : ""}`}
+                  >
                     {row.dayTotal > 0 ? (
                       <strong>¥{fmt(row.dayTotal)}</strong>
                     ) : (

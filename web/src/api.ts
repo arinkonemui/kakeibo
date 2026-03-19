@@ -81,6 +81,25 @@ export async function saveMonthly(
   return body as SaveResult;
 }
 
+// --- Settings ---
+
+/** Save monthly budget via POST /api/settings */
+export async function saveBudget(
+  monthKey: string,
+  monthlyBudget: number | null,
+): Promise<{ ok: true } | { error: string }> {
+  const res = await fetch("/api/settings", {
+    method: "POST",
+    headers: { ...buildHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ month_key: monthKey, monthly_budget: monthlyBudget }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { error: (body as { error?: string }).error ?? `HTTP ${res.status}` };
+  }
+  return { ok: true };
+}
+
 // --- Category CRUD ---
 
 export async function createCategory(

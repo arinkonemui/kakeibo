@@ -73,10 +73,17 @@ export interface UpdateEntryOp {
   payment_method?: string | null;
 }
 
+export interface UpsertDailyBudgetOp {
+  date: string; // YYYY-MM-DD
+  daily_budget_override: number;
+}
+
 export interface SaveOps {
   create_entries?: CreateEntryOp[];
   update_entries?: UpdateEntryOp[];
   delete_entry_ids?: string[];
+  upsert_daily_budgets?: UpsertDailyBudgetOp[];
+  delete_daily_budget_dates?: string[];
 }
 
 export interface SaveResponse {

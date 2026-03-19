@@ -1,6 +1,7 @@
 import { type AuthEnv, AuthError, getAuthUserId } from "./auth";
 import { handleDeleteCategory, handlePatchCategory, handlePostCategory } from "./categories";
 import { handlePostMonthly } from "./save";
+import { handlePostSettings } from "./settings";
 
 export interface Env extends AuthEnv {
   DB: D1Database;
@@ -156,6 +157,10 @@ export default {
 
     if (url.pathname === "/api/monthly" && request.method === "POST") {
       return handlePostMonthly(env.DB, user_id, request);
+    }
+
+    if (url.pathname === "/api/settings" && request.method === "POST") {
+      return handlePostSettings(env.DB, user_id, request);
     }
 
     if (url.pathname === "/api/categories" && request.method === "POST") {

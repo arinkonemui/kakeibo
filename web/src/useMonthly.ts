@@ -21,6 +21,7 @@ export function useMonthly(monthKey: string): UseMonthlyResult {
       return;
     }
     setLoading(true);
+    setData(null); // clear stale data so consumers always see current-month data
     setError(null);
     fetchMonthlyDataset(monthKey)
       .then(setData)

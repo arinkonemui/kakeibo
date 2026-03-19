@@ -600,4 +600,78 @@ Phase 3 の残タスク：既存明細の編集（UPDATE）をフロントエン
 - 保存後のサーバー反映を確認（POST /api/monthly の update_entries）
 
 ### Next Actions
+- Phase 2 残タスク（タブUI + 週間ビュー）
+
+---
+
+## 2026-03-19 Phase 2 残タスク：タブUI + 週間ビュー
+
+### Goal
+SPEC §2 で定義された5タブ構成を導入し、週間ビューを実装。
+
+### Files Changed
+- web/src/App.tsx: activeTab state 追加、タブバー UI（月間/週間/集計/設定/出力）、表示切替ロジック
+- web/src/WeeklyTable.tsx: 新規。月曜開始で月内日を週分割し、週ごとにミニテーブル表示
+- web/src/index.css: .tab-bar / .tab-item / .tab-item--active / .tab-placeholder / .weekly-view / .week-section / .week-label スタイル追加
+
+### Key Decisions
+- タブ切替で追加 DB フェッチなし（RULES §2.1 遵守）。同じ MonthlyDataset を共有
+- 週の開始曜日は月曜日（SPEC §5）。月初が月曜でなければ最初の週は短い
+- WeeklyTable は MonthlyTable と同じ Props 構造（data, monthKey, localEntries, editable, onCellClick）
+- 集計/設定/出力タブは「準備中」プレースホルダー（各 Phase で実装予定）
+- 週間ビューのセルクリック → 既存 EntryModal を共有（同じ onCellClick コールバック）
+
+### Verification
+- タブバーが表示され「月間」がデフォルト選択
+- 月間→週間切替で追加フェッチなし
+- 週間ビューで月曜開始の各週テーブル＋週計行が表示
+- 週間ビューでセルクリック→EntryModal が開く
+- 集計/設定/出力タブ→「準備中」表示
+- tsc --noEmit エラーなし
+
+### Next Actions
 - Phase 4（予算設定）、Phase 5（集計タブ）、Phase 6（CSV/PDF出力）の実装
+
+---
+
+## 2026-03-19T00:00+09:00 — Phase 4: 予算・日予算上書き
+
+### 目的
+月予算設定 UI（設定タブ）+ 日別予算上書き + 日予算超過赤表示 + 合計超過警告 を実装する。
+
+### 変更ファイル
+- `src/settings.ts` — 新規作成（POST /api/settings：monthly_budget 更新）
+- `src/index.ts` — POST /api/settings ルートを追加
+- `web/src/types.ts` — UpsertDailyBudgetOp 追加、SaveOps に upsert_daily_budgets / delete_daily_budget_dates 追加
+- `web/src/useOpsQueue.ts` — dailyBudgetUpserts / deleteDailyBudgetDates をキューに追加、setDailyBudget / deleteDailyBudget メソッド追加
+- `web/src/api.ts` — saveBudget(monthKey, monthlyBudget) 追加
+- `web/src/MonthlyTable.tsx` — localDailyBudgets prop 追加、日予算超過時に .cell-over-budget クラス付与
+- `web/src/WeeklyTable.tsx` — 同上（週間ビューも赤表示対応）
+- `web/src/SettingsTab.tsx` — 新規作成（月予算設定＋日別予算上書きUI）
+- `web/src/App.tsx` — localDailyBudgets 計算追加、SettingsTab 統合、MonthlyTable/WeeklyTable に localDailyBudgets 渡す
+- `web/src/index.css` — .cell-over-budget / .settings-tab / .settings-section / .budget-warning 等スタイル追加
+
+### Key Decisions
+1. **月予算は別エンドポイント（POST /api/settings）で保存**
+   - entries の差分保存（optimistic lock あり）とは独立した設定変更
+   - INSERT OR IGNORE + UPDATE のバッチで months 行を upsert
+2. **日別予算上書きは既存の POST /api/monthly の ops に含める**
+   - save.ts は upsert_daily_budgets / delete_daily_budget_dates を既にサポート済み
+   - useOpsQueue の isDirty / pendingCount / buildSaveOps に統合し、メインの「保存」ボタンで一括保存
+3. **localDailyBudgets は useMemo で計算（server + local ops の合算）**
+   - App.tsx で計算し MonthlyTable / WeeklyTable / SettingsTab に渡す（タブ切替でも再フェッチなし）
+4. **デフォルト日予算 = Math.floor(monthly_budget / daysInMonth)**
+   - 日別上書きがある日はそちらを優先
+5. **日予算超過 → .cell-over-budget クラス → strong { color: #e74c3c }**
+   - 月間・週間両方で表示
+
+### Verification
+- 設定タブで月予算を入力→「月予算を保存」→ refetch 後に月間表ヘッダに月予算・月残が反映
+- デフォルト日予算が設定ヒントに表示される
+- 日別上書きを追加→「保存」ボタンで保存→その日の一日合計が超えると赤表示
+- 日別上書きの合計が月予算を超えると警告文表示
+- tsc --noEmit エラーなし（型チェック通過）
+
+### Next Actions
+- Phase 5（集計タブ：カテゴリ円グラフ・日別折れ線グラフ）
+- Phase 6（出力タブ：CSV/PDF エクスポート）

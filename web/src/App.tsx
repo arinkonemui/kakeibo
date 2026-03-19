@@ -5,7 +5,9 @@ import { DevUserBar } from "./DevUserBar";
 import { EntryModal } from "./EntryModal";
 import { isEditableMonth } from "./monthUtils";
 import { MonthlyTable } from "./MonthlyTable";
+import { SettingsTab } from "./SettingsTab";
 import type { CreateEntryOp, EntryRow, UpdateEntryOp } from "./types";
+import { WeeklyTable } from "./WeeklyTable";
 import { useMonthly } from "./useMonthly";
 import { useOpsQueue } from "./useOpsQueue";
 
@@ -14,6 +16,16 @@ function currentMonthKey(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
+
+type TabId = "monthly" | "weekly" | "aggregate" | "settings" | "export";
+
+const TABS: { id: TabId; label: string }[] = [
+  { id: "monthly", label: "月間" },
+  { id: "weekly", label: "週間" },
+  { id: "aggregate", label: "集計" },
+  { id: "settings", label: "設定" },
+  { id: "export", label: "出力" },
+];
 
 interface ModalState {
   date: string;
@@ -24,6 +36,9 @@ export function App() {
   const [monthKey, setMonthKey] = useState(currentMonthKey);
   const { data, loading, error, refetch } = useMonthly(monthKey);
   const ops = useOpsQueue();
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState<TabId>("monthly");
 
   // Modal state
   const [modal, setModal] = useState<ModalState | null>(null);
@@ -170,6 +185,23 @@ export function App() {
     refetch();
   }, [ops, refetch]);
 
+  // --- Merge local daily budgets for display ---
+  const localDailyBudgets = useMemo(() => {
+    const map = new Map<string, number>();
+    if (data) {
+      for (const db of data.daily_budgets) {
+        map.set(db.date, db.daily_budget_override);
+      }
+    }
+    for (const date of ops.queue.deleteDailyBudgetDates) {
+      map.delete(date);
+    }
+    for (const u of ops.queue.dailyBudgetUpserts) {
+      map.set(u.date, u.daily_budget_override);
+    }
+    return map;
+  }, [data, ops.queue]);
+
   // --- Modal entries for the selected cell ---
   const modalEntries = useMemo(() => {
     if (!modal) return [];
@@ -234,6 +266,19 @@ export function App() {
         </button>
       </div>
 
+      {/* Tab bar */}
+      <nav className="tab-bar">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            className={`tab-item${activeTab === tab.id ? " tab-item--active" : ""}`}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </nav>
+
       {/* Read-only banner */}
       {!editable && data && (
         <div className="read-only-banner">
@@ -257,14 +302,53 @@ export function App() {
       {loading && <p className="status">読み込み中…</p>}
       {error && <p className="status error">エラー: {error}</p>}
 
-      {data && (
+      {data && activeTab === "monthly" && (
         <MonthlyTable
           data={data}
           monthKey={monthKey}
           localEntries={localEntries}
+          localDailyBudgets={localDailyBudgets}
           editable={editable}
           onCellClick={handleCellClick}
         />
+      )}
+
+      {data && activeTab === "weekly" && (
+        <WeeklyTable
+          data={data}
+          monthKey={monthKey}
+          localEntries={localEntries}
+          localDailyBudgets={localDailyBudgets}
+          editable={editable}
+          onCellClick={handleCellClick}
+        />
+      )}
+
+      {activeTab === "aggregate" && (
+        <div className="tab-placeholder">
+          <p>集計タブは準備中です</p>
+        </div>
+      )}
+
+      {activeTab === "settings" && data && (
+        <SettingsTab
+          data={data}
+          monthKey={monthKey}
+          localDailyBudgets={localDailyBudgets}
+          editable={editable}
+          onSetDailyBudget={ops.setDailyBudget}
+          onDeleteDailyBudget={ops.deleteDailyBudget}
+          onBudgetSaved={() => {
+            ops.reset();
+            refetch();
+          }}
+        />
+      )}
+
+      {activeTab === "export" && (
+        <div className="tab-placeholder">
+          <p>出力タブは準備中です</p>
+        </div>
       )}
 
       {/* Save bar */}
