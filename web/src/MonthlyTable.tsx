@@ -185,7 +185,12 @@ export function MonthlyTable({ data, monthKey, localEntries, localDailyBudgets, 
                     className={`col-total sticky-right cell-amount${overBudget ? " cell-over-budget" : ""}`}
                   >
                     {row.dayTotal > 0 ? (
-                      <strong>¥{fmt(row.dayTotal)}</strong>
+                      <>
+                        <strong>¥{fmt(row.dayTotal)}</strong>
+                        {localDailyBudgets.has(row.dateStr) && (
+                          <span className="budget-override-mark">日予</span>
+                        )}
+                      </>
                     ) : (
                       ""
                     )}

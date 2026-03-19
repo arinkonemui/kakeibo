@@ -23,7 +23,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "monthly", label: "月間" },
   { id: "weekly", label: "週間" },
   { id: "aggregate", label: "集計" },
-  { id: "settings", label: "設定" },
+  { id: "settings", label: "予算" },
   { id: "export", label: "出力" },
 ];
 

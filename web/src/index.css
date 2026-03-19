@@ -732,6 +732,20 @@ body {
   color: #e74c3c;
 }
 
+/* --- Daily budget override mark --- */
+.budget-override-mark {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 0.65rem;
+  font-weight: bold;
+  color: #fff;
+  background: var(--color-primary);
+  border-radius: 3px;
+  padding: 0 3px;
+  vertical-align: middle;
+  line-height: 1.4;
+}
+
 /* --- Settings Tab --- */
 .settings-tab {
   padding: 8px 0;
