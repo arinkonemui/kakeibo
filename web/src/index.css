@@ -746,6 +746,147 @@ body {
   line-height: 1.4;
 }
 
+/* --- Aggregate Tab --- */
+.agg-tab {
+  padding: 8px 0;
+}
+
+.agg-summary {
+  background: var(--color-header-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.agg-section {
+  background: var(--color-header-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.agg-section-title {
+  font-size: 1rem;
+  color: var(--color-primary);
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--color-warm);
+  padding-bottom: 6px;
+}
+
+/* Summary grid */
+.agg-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.agg-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.agg-label {
+  font-size: 0.78rem;
+  color: #888;
+}
+
+.agg-value {
+  font-size: 1.15rem;
+  font-weight: bold;
+}
+
+/* Category row (pie + table side by side) */
+.agg-category-row {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.agg-pie-wrapper {
+  flex-shrink: 0;
+}
+
+.agg-pie-svg {
+  display: block;
+}
+
+.agg-pie-slice {
+  transition: opacity 0.15s;
+}
+
+.agg-pie-slice:hover {
+  opacity: 0.8;
+}
+
+.agg-cat-table-wrapper {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.agg-cat-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.agg-cat-table th,
+.agg-cat-table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.agg-cat-table th {
+  text-align: left;
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.agg-cat-table tfoot td {
+  border-top: 2px solid var(--color-border);
+  border-bottom: none;
+}
+
+.agg-num {
+  text-align: right;
+}
+
+.agg-color-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  vertical-align: middle;
+}
+
+/* Line chart */
+.agg-line-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.agg-line-svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Responsive: stack pie + table vertically */
+@media (max-width: 640px) {
+  .agg-category-row {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .agg-summary-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 /* --- Settings Tab --- */
 .settings-tab {
   padding: 8px 0;

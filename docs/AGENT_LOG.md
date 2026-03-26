@@ -675,3 +675,39 @@ SPEC §2 で定義された5タブ構成を導入し、週間ビューを実装�
 ### Next Actions
 - Phase 5（集計タブ：カテゴリ円グラフ・日別折れ線グラフ）
 - Phase 6（出力タブ：CSV/PDF エクスポート）
+
+---
+
+## 2026-03-19T02:00+09:00 — Phase 5: 集計タブ
+
+### 目的
+カテゴリ別円グラフ・日別折れ線グラフ・月の合算値サマリーを集計タブに実装する（SPEC §7, PLAN Phase 5）。
+
+### 変更ファイル
+- `web/src/aggregateUtils.ts` — 新規。集計計算関数（computeCategoryTotals, computeDailyTotals, computeMonthlySummary）
+- `web/src/charts/PieChart.tsx` — 新規。Pure SVG 円グラフコンポーネント
+- `web/src/charts/LineChart.tsx` — 新規。Pure SVG 折れ線グラフコンポーネント
+- `web/src/AggregateTab.tsx` — 新規。集計タブ本体（useMemo で計算、3セクション配置）
+- `web/src/App.tsx` — AggregateTab import、プレースホルダー差し替え
+- `web/src/index.css` — .agg-* スタイル追加（サマリーグリッド、カテゴリ行、レスポンシブ）
+
+### Key Decisions
+1. **外部チャートライブラリ不使用（Pure SVG）**
+   - 依存追加なし。React/ReactDOM のみの方針を維持
+   - 円グラフ: SVG path でアーク描画、凡例は HTML
+   - 折れ線: SVG viewBox ベース、polyline + area fill + budget 破線
+   - Phase 6（PDF）で SVG をそのまま埋め込み可能
+2. **折れ線グラフは日別支出合計**（累計ではない。SPEC §7「日別折れ線」の自然な読み）
+3. **カラーパレットは暖色系12色**（SPEC §0 ブランド方針に準拠）
+4. **集計はすべて useMemo で localEntries から計算**（追加 DB フェッチなし、RULES §2.1 遵守）
+5. **640px 以下で円グラフ＋テーブルを縦積み**（レスポンシブ対応）
+
+### Verification
+- tsc --noEmit エラーなし
+- 支出データありの月 → 円グラフ・折れ線・サマリーが表示
+- 月間表のカテゴリ合計と集計タブのカテゴリ金額が一致すること
+- 月間↔集計タブ切替 → Network に追加リクエストなし
+- 月予算設定時 → 折れ線グラフに日予算の破線ライン表示
+
+### Next Actions
+- Phase 6（出力タブ：CSV/PDF エクスポート）

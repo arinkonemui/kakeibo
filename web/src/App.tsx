@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { AggregateTab } from "./AggregateTab";
 import { saveMonthly } from "./api";
 import { CategoryManager } from "./CategoryManager";
 import { DevUserBar } from "./DevUserBar";
@@ -324,10 +325,12 @@ export function App() {
         />
       )}
 
-      {activeTab === "aggregate" && (
-        <div className="tab-placeholder">
-          <p>集計タブは準備中です</p>
-        </div>
+      {data && activeTab === "aggregate" && (
+        <AggregateTab
+          data={data}
+          monthKey={monthKey}
+          localEntries={localEntries}
+        />
       )}
 
       {activeTab === "settings" && data && (
