@@ -104,3 +104,12 @@ Never rewrite or delete existing log entries.
 ## 7. Output style
 - Prefer minimal, reviewable diffs.
 - Explain the exact change set and how to verify it.
+
+---
+
+## 8. Dev server startup order (mandatory)
+When starting preview servers, **always start Wrangler (Backend API) first, then Vite (Frontend React)**.
+- Wrangler: `http://localhost:8787`
+- Vite: `http://localhost:5173`
+
+Starting Vite before Wrangler causes `ECONNREFUSED` proxy errors in the console because the frontend immediately requests `/api/*` endpoints that have nowhere to connect.

@@ -18,15 +18,18 @@ interface Props {
   budgetLine?: number | null;
 }
 
+/**
+ * Determine Y-axis upper bound.
+ * Steps: 1,000 → 5,000 → 10,000 → 10,000単位 → 100,000単位 → 1,000,000単位
+ * Result is always divisible by 4 so 1/4 ticks are integers.
+ */
 function niceMax(raw: number): number {
-  if (raw <= 0) return 1000;
-  // Round up to next "nice" number for axis
-  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
-  const norm = raw / mag;
-  if (norm <= 1) return mag;
-  if (norm <= 2) return 2 * mag;
-  if (norm <= 5) return 5 * mag;
-  return 10 * mag;
+  if (raw <= 1000) return 1000;
+  if (raw <= 5000) return 5000;
+  if (raw <= 10000) return 10000;
+  if (raw <= 100000) return Math.ceil(raw / 10000) * 10000;
+  if (raw <= 1000000) return Math.ceil(raw / 100000) * 100000;
+  return Math.ceil(raw / 1000000) * 1000000;
 }
 
 export function LineChart({
@@ -73,8 +76,8 @@ export function LineChart({
     `${toX(n - 1)},${toY(0)}`,
   ].join(" ");
 
-  // Y-axis ticks (4 ticks including 0) — ceil to integers
-  const yTicks = [0, 1, 2, 3].map((i) => Math.ceil((yMax / 3) * i));
+  // Y-axis ticks: 0, yMax/4, yMax/2, 3*yMax/4, yMax (5 lines, always integers)
+  const yTicks = [0, 1, 2, 3, 4].map((i) => (yMax / 4) * i);
 
   // X-axis labels: show day 1, every 5 days, and last day
   const xLabels: { index: number; label: string }[] = [];
