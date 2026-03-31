@@ -1,4 +1,5 @@
 import { type AuthEnv, AuthError, getAuthUserId } from "./auth";
+import { handleLogin, handleRegister } from "./authApi";
 import { handleDeleteCategory, handlePatchCategory, handlePostCategory } from "./categories";
 import { handlePostMonthly } from "./save";
 import { handlePostSettings } from "./settings";
@@ -136,6 +137,16 @@ async function handleGetMonthly(
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+
+    // --- Public auth endpoints (no token required) ---
+    if (url.pathname === "/api/auth/register" && request.method === "POST") {
+      if (!env.AUTH_SECRET) return errorResponse(500, "Internal Server Error");
+      return handleRegister(env.DB, env.AUTH_SECRET, request);
+    }
+    if (url.pathname === "/api/auth/login" && request.method === "POST") {
+      if (!env.AUTH_SECRET) return errorResponse(500, "Internal Server Error");
+      return handleLogin(env.DB, env.AUTH_SECRET, request);
+    }
 
     // --- Auth: derive user_id from request ---
     let user_id: string;

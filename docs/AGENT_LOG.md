@@ -711,3 +711,47 @@ SPEC §2 で定義された5タブ構成を導入し、週間ビューを実装�
 
 ### Next Actions
 - Phase 6（出力タブ：CSV/PDF エクスポート）
+
+---
+
+## 2026-03-26T00:00+09:00 — ログイン機能実装（メール＋パスワード認証）
+
+### 目的
+複数ユーザーが独立して利用できる本番向け認証基盤を追加。
+メール＋パスワード＋任意ユーザー名での登録・ログイン、JWT（Bearer トークン）で API 認証。
+将来の OAuth（Google/LINE/Yahoo/X/Instagram/Facebook）を PLAN.md に明記。
+
+### 変更ファイル
+- `db/schema.sql` — users テーブルに email / password_hash / username 追加
+- `docs/DB_SCHEMA.md` — 新列のドキュメント
+- `docs/PLAN.md` — §3.5 認証セクション追加（メール実装済み、OAuth 追加予定を明記）
+- `src/auth.ts` — issueToken(), deriveUserId(), hashPassword(), verifyPassword() 追加
+- `src/authApi.ts` — 新規。POST /api/auth/register・login ハンドラ
+- `src/index.ts` — auth ルートを getAuthUserId の前に追加（公開エンドポイント）
+- `web/src/useAuth.ts` — 新規。token/userId/displayName を localStorage 管理する hook
+- `web/src/LoginScreen.tsx` — 新規。ログイン・新規登録タブ切り替え UI
+- `web/src/api.ts` — buildHeaders() に Bearer トークン追加（非 dev 環境）、authRegister/authLogin 追加
+- `web/src/App.tsx` — 非 dev 環境で未認証時に LoginScreen 表示、ヘッダーにユーザー名＋ログアウトボタン
+- `web/src/index.css` — ログイン画面スタイル (.login-*) + ユーザーバー (.app-user-bar)
+
+### Key Decisions
+1. **localhost では LoginScreen をスキップ**（既存の DevUserBar フローを維持。DEV_MODE フラグ依存ではなく hostname で判定）
+2. **パスワードハッシュは PBKDF2（Web Crypto API）**。Cloudflare Workers では bcrypt 未対応のため
+3. **user_id はメールから決定論的に生成**（SHA256(email)[0:16].hex()）。DB lookup は email で行い FK は user_id
+4. **ダミーハッシュで timing-safe 比較**（email 不存在でも同じ時間をかけることで列挙を防止）
+5. **Bearer トークン有効期限 30 日**
+6. **App コンポーネントを App + AppInner に分割**（hooks の条件分岐を避けるため）
+
+### Verification
+- tsc --noEmit エラーなし
+- 本番環境: 未ログイン → LoginScreen 表示
+- 新規登録 → 201 + token
+- ログイン → 200 + token
+- 重複登録 → 409
+- 誤パスワード → 401
+- ログアウト → LoginScreen に戻る
+- localhost 環境: DevUserBar が引き続き動作（LoginScreen は表示されない）
+
+### Next Actions
+- Phase 6（出力タブ：CSV/PDF エクスポート）
+- RULES §2.2 キャッシュ（LRU 6ヶ月・TTL）

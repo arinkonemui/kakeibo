@@ -68,6 +68,32 @@
 - [ ] 競合：months.version不一致は保存拒否＋最新取得を促す
 - [ ] アーカイブCSV表示：読み取り専用、保存不可、文言統一
 
+## 3.5 認証（ログイン機能）
+
+### 実装済み：メール＋パスワード認証
+- 登録 / ログイン画面（ログイン・新規登録をタブ切り替え）
+- ユーザー名は任意登録。未入力時はメールの `@` より前を表示
+- パスワードハッシュ：PBKDF2（SHA-256, 100,000 iterations）
+- トークン：HMAC-SHA256 署名付き Bearer トークン（有効期限30日）
+
+### 将来追加予定：ソーシャル / OAuth ログイン
+
+以下のプロバイダを後続フェーズで追加する予定。
+users テーブルに `auth_provider TEXT DEFAULT 'email'` 列を追加して対応する。
+
+| プロバイダ | エンドポイント | 備考 |
+|---|---|---|
+| Google | POST /api/auth/google | 最も実装例が多い |
+| LINE | POST /api/auth/line | 日本ユーザーに強い |
+| Yahoo! JAPAN | POST /api/auth/yahoo | 個人開発者登録に審査あり |
+| X (Twitter) | POST /api/auth/twitter | OAuth 2.0 PKCE フロー |
+| Instagram | POST /api/auth/instagram | Meta Business Platform 経由 |
+| Facebook | POST /api/auth/facebook | Meta Business Platform 経由（Instagram と同基盤） |
+
+> **注意:** Instagram / Facebook は同じ Meta Developer Platform を使用する。
+> X は OAuth 2.0 PKCE フローで実装（旧 OAuth 1.0a は非推奨）。
+> いずれも user_id 生成ルール（SHA256(email) → u_ + 32hex）は統一して維持する。
+
 ## 4. AGENT_LOG 運用（必須）
 - 開発開始時に `docs/AGENT_LOG.md` を作成する
 - 以後、作業単位で追記する（既存行の編集・削除は禁止）

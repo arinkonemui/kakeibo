@@ -5,10 +5,12 @@ import { CategoryManager } from "./CategoryManager";
 import { DevUserBar } from "./DevUserBar";
 import { EntryModal } from "./EntryModal";
 import { isEditableMonth } from "./monthUtils";
+import { LoginScreen } from "./LoginScreen";
 import { MonthlyTable } from "./MonthlyTable";
 import { SettingsTab } from "./SettingsTab";
 import type { CreateEntryOp, EntryRow, UpdateEntryOp } from "./types";
 import { WeeklyTable } from "./WeeklyTable";
+import { useAuth } from "./useAuth";
 import { useMonthly } from "./useMonthly";
 import { useOpsQueue } from "./useOpsQueue";
 
@@ -34,6 +36,23 @@ interface ModalState {
 }
 
 export function App() {
+  const { token, userId, displayName, login, logout } = useAuth();
+
+  // Show login screen when not authenticated
+  if (!token || !userId) {
+    return <LoginScreen onLogin={login} />;
+  }
+
+  return <AppInner displayName={displayName} onLogout={logout} />;
+}
+
+function AppInner({
+  displayName,
+  onLogout,
+}: {
+  displayName: string | null;
+  onLogout: () => void;
+}) {
   const [monthKey, setMonthKey] = useState(currentMonthKey);
   const { data, loading, error, refetch } = useMonthly(monthKey);
   const ops = useOpsQueue();
@@ -223,6 +242,14 @@ export function App() {
         <p className="catchphrase">
           1か月を一目で見渡す。 見開きカレンダー型のシンプル家計簿。
         </p>
+        {displayName && (
+          <div className="app-user-bar">
+            <span className="app-user-name">{displayName}</span>
+            <button className="btn-logout" onClick={onLogout}>
+              ログアウト
+            </button>
+          </div>
+        )}
       </header>
 
       <DevUserBar onChange={handleDevChange} />

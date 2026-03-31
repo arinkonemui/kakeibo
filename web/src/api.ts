@@ -1,6 +1,7 @@
 import type { CategoryRow, MonthlyDataset, SaveOps, SaveResult } from "./types";
 
 const DEV_USER_KEY = "osaifu_dev_user_id";
+const TOKEN_KEY = "osaifu_token";
 
 /** Check if running in local dev environment */
 function isLocalDev(): boolean {
@@ -23,14 +24,15 @@ export function setDevUserId(userId: string): void {
   }
 }
 
-/** Build common headers (adds X-Debug-User in local dev) */
+/** Build common headers: X-Debug-User in local dev, Bearer token in prod */
 function buildHeaders(): HeadersInit {
   const headers: Record<string, string> = {};
   if (isLocalDev()) {
     const devUser = getDevUserId();
-    if (devUser) {
-      headers["X-Debug-User"] = devUser;
-    }
+    if (devUser) headers["X-Debug-User"] = devUser;
+  } else {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (token) headers["Authorization"] = `Bearer ${token}`;
   }
   return headers;
 }
@@ -146,4 +148,45 @@ export async function deleteCategory(
     return { error: (body as { error?: string }).error ?? `HTTP ${res.status}` };
   }
   return { ok: true };
+}
+
+// --- Authentication ---
+
+export interface AuthResponse {
+  token: string;
+  userId: string;
+  displayName: string;
+}
+
+export async function authRegister(
+  email: string,
+  password: string,
+  username?: string,
+): Promise<AuthResponse | { error: string }> {
+  const res = await fetch("/api/auth/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password, username }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { error: (body as { error?: string }).error ?? `HTTP ${res.status}` };
+  }
+  return body as AuthResponse;
+}
+
+export async function authLogin(
+  email: string,
+  password: string,
+): Promise<AuthResponse | { error: string }> {
+  const res = await fetch("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { error: (body as { error?: string }).error ?? `HTTP ${res.status}` };
+  }
+  return body as AuthResponse;
 }

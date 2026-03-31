@@ -129,6 +129,131 @@ async function verifyToken(token: string, secret: string): Promise<string> {
   return payload.sub;
 }
 
+// --- Token issuance ---
+
+/** Encode bytes to base64url string */
+function base64urlEncode(bytes: Uint8Array): string {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]!);
+  }
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+/**
+ * Issues a signed Bearer token for the given user_id.
+ * Expires in 30 days.
+ */
+export async function issueToken(userId: string, secret: string): Promise<string> {
+  const exp = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30; // 30 days
+  const payload = base64urlEncode(
+    new TextEncoder().encode(JSON.stringify({ sub: userId, exp })),
+  );
+
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+
+  const sig = new Uint8Array(
+    await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload)),
+  );
+
+  return `${payload}.${base64urlEncode(sig)}`;
+}
+
+// --- user_id derivation ---
+
+/**
+ * Derives canonical user_id from email (lowercase-normalized).
+ * user_id = "u_" + SHA256(email)[0:16].hex()
+ */
+export async function deriveUserId(email: string): Promise<string> {
+  const normalized = email.trim().toLowerCase();
+  const hashBuf = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(normalized),
+  );
+  const bytes = new Uint8Array(hashBuf).slice(0, 16);
+  const hex = Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  return `u_${hex}`;
+}
+
+// --- Password hashing (PBKDF2-SHA256) ---
+
+const PBKDF2_ITERATIONS = 100_000;
+
+/** Hash a password. Returns "<salt_hex>:<hash_hex>" */
+export async function hashPassword(password: string): Promise<string> {
+  const saltBytes = crypto.getRandomValues(new Uint8Array(16));
+  const saltHex = Array.from(saltBytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(password),
+    "PBKDF2",
+    false,
+    ["deriveBits"],
+  );
+
+  const hashBuf = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", hash: "SHA-256", salt: saltBytes, iterations: PBKDF2_ITERATIONS },
+    key,
+    256,
+  );
+
+  const hashHex = Array.from(new Uint8Array(hashBuf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+  return `${saltHex}:${hashHex}`;
+}
+
+/** Verify a password against a stored "<salt_hex>:<hash_hex>" */
+export async function verifyPassword(
+  password: string,
+  stored: string,
+): Promise<boolean> {
+  const sep = stored.indexOf(":");
+  if (sep === -1) return false;
+
+  const saltHex = stored.slice(0, sep);
+  const expectedHex = stored.slice(sep + 1);
+
+  const saltBytes = new Uint8Array(
+    saltHex.match(/../g)!.map((h) => parseInt(h, 16)),
+  );
+
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(password),
+    "PBKDF2",
+    false,
+    ["deriveBits"],
+  );
+
+  const hashBuf = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", hash: "SHA-256", salt: saltBytes, iterations: PBKDF2_ITERATIONS },
+    key,
+    256,
+  );
+
+  const actualHex = Array.from(new Uint8Array(hashBuf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+  return actualHex === expectedHex;
+}
+
+// --- base64url helpers ---
+
 function base64urlDecode(s: string): Uint8Array {
   // base64url -> base64
   const base64 = s.replace(/-/g, "+").replace(/_/g, "/");

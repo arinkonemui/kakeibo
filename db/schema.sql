@@ -2,8 +2,11 @@ PRAGMA foreign_keys = ON;
 
 -- users
 CREATE TABLE IF NOT EXISTS users (
-  user_id     TEXT PRIMARY KEY,
-  created_at  TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
+  user_id       TEXT PRIMARY KEY,
+  email         TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,  -- "<salt_hex>:<hash_hex>" (PBKDF2-SHA256)
+  username      TEXT,           -- NULL = display email-local-part
+  created_at    TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );
 
 -- months

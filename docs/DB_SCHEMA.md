@@ -32,15 +32,24 @@
 ## 2. テーブル一覧
 
 ### 2.1 users
-ユーザー識別。全データは user_id で完全分離。
+ユーザー識別と認証情報。全データは user_id で完全分離。
 
 | Column | Type | Null | Key | Default | Note |
 |---|---|---:|---|---|---|
-| user_id | TEXT | NO | PK | - | ユーザーID |
+| user_id | TEXT | NO | PK | - | `u_` + SHA256(email)[0:16].hex() |
+| email | TEXT | NO | UNIQUE | - | ログイン用メールアドレス |
+| password_hash | TEXT | NO |  | - | `<salt_hex>:<hash_hex>` (PBKDF2-SHA256, 100,000 iterations) |
+| username | TEXT | YES |  | NULL | 表示名。NULL のときは email の @ 前を使用 |
 | created_at | TEXT | NO |  | CURRENT_TIMESTAMP | 作成日時 |
 
 #### Constraints
 - PK: `(user_id)`
+- UNIQUE: `(email)`
+
+#### Semantics
+- `user_id` はメールアドレスから決定論的に生成（SHA-256 の先頭 16 バイトを hex 化）
+- `password_hash` は PBKDF2（SHA-256, iterations=100000）。形式: `<16バイト salt の hex>:<32バイト hash の hex>`
+- 将来的に OAuth プロバイダを追加する場合は `auth_provider TEXT DEFAULT 'email'` 列を追加予定
 
 ---
 
