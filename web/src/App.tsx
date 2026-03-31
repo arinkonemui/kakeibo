@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { AggregateTab } from "./AggregateTab";
-import { saveMonthly } from "./api";
+import { fetchMonthlyDataset, saveMonthly } from "./api";
 import { CategoryManager } from "./CategoryManager";
 import { DevUserBar } from "./DevUserBar";
 import { EntryModal } from "./EntryModal";
@@ -14,7 +14,6 @@ import { WeeklyTable } from "./WeeklyTable";
 import { useAuth } from "./useAuth";
 import { useMonthly } from "./useMonthly";
 import { useOpsQueue } from "./useOpsQueue";
-import type { ArchiveRow } from "./csvUtils";
 
 /** Get current month as YYYY-MM */
 function currentMonthKey(): string {
@@ -76,8 +75,10 @@ function AppInner({
     monthKey: string;
     dataset: MonthlyDataset;
   } | null>(null);
+  const [archiveCommitting, setArchiveCommitting] = useState(false);
+  const [archiveCommitError, setArchiveCommitError] = useState<string | null>(null);
 
-  // アーカイブ表示中は常に読み取り専用。当月インポートは archive を使わず ops キューへ。
+  // アーカイブ表示中は常に読み取り専用
   const effectiveData = archive?.dataset ?? data;
   const effectiveMonthKey = archive?.monthKey ?? monthKey;
   const editable = archive ? false : isEditableMonth(monthKey);
@@ -109,56 +110,99 @@ function AppInner({
 
   // --- Archive handlers ---
 
-  /** 過去月：アーカイブ表示モード（読み取り専用） */
+  /** アーカイブ読み込み（全月共通）：表示のみ、存在チェックなし */
   const handleLoadArchive = useCallback(
     (dataset: MonthlyDataset, archMonthKey: string) => {
       setArchive({ monthKey: archMonthKey, dataset });
+      setArchiveCommitError(null);
       setActiveTab("monthly");
     },
     [],
   );
 
-  /** 当月：CSV エントリを ops キューへ取り込み（実カテゴリにマッピング） */
-  const handleImportCurrentMonth = useCallback(
-    (rows: ArchiveRow[], _archMonthKey: string) => {
-      if (!data) return;
-      // カテゴリ名 → 実 category_id のマップ
-      const catMap = new Map(
-        data.categories.map((c) => [c.name, c.category_id]),
+  /** アーカイブを DB へ反映する（存在チェック → 直接保存） */
+  const handleCommitArchive = useCallback(async () => {
+    if (!archive || !data) return;
+    setArchiveCommitting(true);
+    setArchiveCommitError(null);
+
+    // 存在チェック
+    let existing: MonthlyDataset;
+    try {
+      existing = await fetchMonthlyDataset(archive.monthKey);
+    } catch {
+      setArchiveCommitError("データの確認中にエラーが発生しました。");
+      setArchiveCommitting(false);
+      return;
+    }
+
+    // エントリが1件でも残っている場合のみブロック
+    // （全削除済みで months レコードだけ残っているケースは反映を許可する）
+    if (existing.entries.length > 0) {
+      setArchiveCommitError(
+        `${archive.monthKey}のデータが既に存在するため反映できません。` +
+        `先にアプリからこの月のデータを削除してください。`,
       );
-      let skipped = 0;
-      const creates: CreateEntryOp[] = [];
-      for (const row of rows) {
-        const catId = catMap.get(row.categoryName);
-        if (!catId) {
-          skipped++;
-          continue;
-        }
-        creates.push({
-          date: row.date,
-          type: row.type === "支出" ? "expense" : "income",
-          amount: row.amount,
-          category_id: catId,
-          memo: row.memo || undefined,
-          payment_method: row.paymentMethod || undefined,
-        });
-      }
-      for (const c of creates) {
-        ops.addEntry(c);
-      }
-      setActiveTab("monthly");
-      if (skipped > 0) {
-        setSaveError(
-          `${skipped}件のエントリはカテゴリが一致しないためスキップされました。`,
-        );
-      }
-    },
-    [data, ops],
-  );
+      setArchiveCommitting(false);
+      return;
+    }
+
+    // months レコードが既にある場合はそのバージョンを使う（新規は 0）
+    const expectedVersion = existing.month?.version ?? 0;
+
+    // カテゴリ名 → 実 category_id マッピング
+    const catMap = new Map(data.categories.map((c) => [c.name, c.category_id]));
+    let skipped = 0;
+    const creates: CreateEntryOp[] = [];
+    for (const entry of archive.dataset.entries) {
+      const archiveCat = archive.dataset.categories.find(
+        (c) => c.category_id === entry.category_id,
+      );
+      const realCatId = archiveCat ? catMap.get(archiveCat.name) : undefined;
+      if (!realCatId) { skipped++; continue; }
+      creates.push({
+        date: entry.date,
+        type: entry.type as "expense" | "income",
+        amount: entry.amount,
+        category_id: realCatId,
+        memo: entry.memo ?? undefined,
+        payment_method: entry.payment_method ?? undefined,
+      });
+    }
+
+    // 直接 DB 保存（既存 months レコードがあればそのバージョンで、なければ 0）
+    const result = await saveMonthly(archive.monthKey, expectedVersion, { create_entries: creates });
+    setArchiveCommitting(false);
+
+    if ("conflict" in result) {
+      setArchiveCommitError(result.message);
+      return;
+    }
+    if ("error" in result) {
+      setArchiveCommitError(result.error);
+      return;
+    }
+
+    // 成功：反映先月へ移動し通常モードへ
+    const targetMonth = archive.monthKey;
+    setArchive(null);
+    setArchiveCommitError(null);
+    ops.reset();
+    setMonthKey(targetMonth);
+    setActiveTab("monthly");
+    // 当月への反映時は monthKey が変わらず useMonthly が自動リフェッチしないため強制リフェッチ
+    setTimeout(() => refetch(), 50);
+    if (skipped > 0) {
+      setSaveError(
+        `${skipped}件のエントリはカテゴリが一致しないためスキップされました。`,
+      );
+    }
+  }, [archive, data, ops, refetch]);
 
   /** アーカイブ表示を終了する */
   const handleClearArchive = useCallback(() => {
     setArchive(null);
+    setArchiveCommitError(null);
     setActiveTab("export");
   }, []);
 
@@ -384,7 +428,19 @@ function AppInner({
           <span>
             アーカイブ表示のため保存できません（{archive.monthKey}）
           </span>
-          <button onClick={handleClearArchive}>閉じる</button>
+          <div className="archive-banner-actions">
+            <button
+              className="btn-archive-commit"
+              onClick={handleCommitArchive}
+              disabled={archiveCommitting}
+            >
+              {archiveCommitting ? "反映中…" : "DBへ反映"}
+            </button>
+            <button onClick={handleClearArchive}>閉じる</button>
+          </div>
+          {archiveCommitError && (
+            <p className="archive-commit-error">{archiveCommitError}</p>
+          )}
         </div>
       )}
 
@@ -468,7 +524,6 @@ function AppInner({
           localEntries={archive ? [] : localEntries}
           archiveActive={!!archive}
           onLoadArchive={handleLoadArchive}
-          onImportCurrentMonth={handleImportCurrentMonth}
           onClearArchive={handleClearArchive}
         />
       )}

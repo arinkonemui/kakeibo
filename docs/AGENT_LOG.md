@@ -794,3 +794,29 @@ SPEC §8.4 を Plan A に沿って更新（当月アーカイブは編集可能�
 ### Next Actions
 - Phase 6 残: PDF 出力（A4・2ページ固定）
 - RULES §2.2 LRU キャッシュ（6ヶ月・TTL 120分/24時間）
+
+---
+
+## 2026-04-01T00:00+09:00 — アーカイブCSV読み込みフロー変更
+
+### 目的
+CSV読み込み時の存在チェックを廃止し、「DBへ反映」ボタン押下時に存在チェック→直接保存するフローへ変更。
+
+### 変更ファイル
+- `web/src/ExportTab.tsx` — 存在チェック・`onImportCurrentMonth`・`checking` state を削除。全月共通で即 `onLoadArchive` を呼ぶ
+- `web/src/App.tsx` — `handleImportCurrentMonth` を削除し `handleCommitArchive`（非同期：存在チェック→直接saveMonthly）を追加。アーカイブバナーに「DBへ反映」ボタン・エラー表示追加。`onImportCurrentMonth` prop を ExportTab から除去
+- `web/src/index.css` — `.archive-banner-actions`・`.btn-archive-commit`・`.archive-commit-error` スタイル追加。バナーに `flex-wrap` 追加
+- `docs/SPEC.md` — §8.4 を新フロー（DBへ反映ボタン押下時に存在チェック）へ更新
+
+### 主な決定
+- 「表示してから判断」フローに統一：CSV選択→即アーカイブ表示（全月統一）→確認後に「DBへ反映」
+- 当月/過去月の分岐を撤廃。当月でもアーカイブは読み取り専用表示→DBへ反映で保存
+- カテゴリ名→実IDマッピングは反映時に実施（`data.categories` を参照）
+- saveMonthly(archive.monthKey, 0, {...}) で新規月として直接保存（version=0）
+
+### 検証
+- `npx tsc --noEmit` エラーなし
+
+### Next Actions
+- Phase 6 残: PDF 出力（A4・2ページ固定）
+- RULES §2.2 LRU キャッシュ（6ヶ月・TTL 120分/24時間）

@@ -1203,6 +1203,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 12px;
   background: #fff3cd;
   border: 1px solid #ffc107;
@@ -1211,6 +1212,11 @@ body {
   font-size: 0.9rem;
   font-weight: bold;
   color: #856404;
+}
+.archive-banner-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 .archive-mode-banner button {
   background: #856404;
@@ -1223,3 +1229,17 @@ body {
   white-space: nowrap;
 }
 .archive-mode-banner button:hover { opacity: 0.8; }
+.archive-mode-banner button:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-archive-commit {
+  background: #FF9F43 !important;
+  color: #fff !important;
+  font-weight: bold;
+}
+.btn-archive-commit:hover:not(:disabled) { background: #e8892e !important; }
+.archive-commit-error {
+  color: #c0392b;
+  font-size: 0.85rem;
+  margin: 6px 0 0;
+  width: 100%;
+  font-weight: normal;
+}
