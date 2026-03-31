@@ -2,6 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 import { fetchMonthlyDataset, getDevUserId } from "./api";
 import type { MonthlyDataset } from "./types";
 
+function isLocalDev(): boolean {
+  const host = window.location.hostname;
+  return host === "localhost" || host === "127.0.0.1";
+}
+
 interface UseMonthlyResult {
   data: MonthlyDataset | null;
   loading: boolean;
@@ -15,9 +20,11 @@ export function useMonthly(monthKey: string): UseMonthlyResult {
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(() => {
-    if (!monthKey || !getDevUserId()) {
+    // In local dev mode (without auth token), require DevUserBar to be set
+    const hasToken = !!localStorage.getItem("osaifu_token");
+    if (!monthKey || (isLocalDev() && !hasToken && !getDevUserId())) {
       setData(null);
-      setError(monthKey ? "Dev user_id が未設定です" : null);
+      setError(monthKey && isLocalDev() && !hasToken ? "Dev user_id が未設定です" : null);
       return;
     }
     setLoading(true);

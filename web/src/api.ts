@@ -24,15 +24,19 @@ export function setDevUserId(userId: string): void {
   }
 }
 
-/** Build common headers: X-Debug-User in local dev, Bearer token in prod */
+/** Build common headers.
+ * Priority: Bearer token (if logged in) → X-Debug-User (local dev fallback)
+ */
 function buildHeaders(): HeadersInit {
   const headers: Record<string, string> = {};
-  if (isLocalDev()) {
+  const token = localStorage.getItem(TOKEN_KEY);
+  if (token) {
+    // Logged-in via auth system (works on both localhost and prod)
+    headers["Authorization"] = `Bearer ${token}`;
+  } else if (isLocalDev()) {
+    // Local dev fallback: DevUserBar
     const devUser = getDevUserId();
     if (devUser) headers["X-Debug-User"] = devUser;
-  } else {
-    const token = localStorage.getItem(TOKEN_KEY);
-    if (token) headers["Authorization"] = `Bearer ${token}`;
   }
   return headers;
 }

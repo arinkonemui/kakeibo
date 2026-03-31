@@ -73,6 +73,18 @@ export async function handleRegister(
     throw e;
   }
 
+  // Insert default categories for the new user
+  const defaultCategories = ["食費", "交通費", "医療費", "雑費"];
+  for (let i = 0; i < defaultCategories.length; i++) {
+    const catId = crypto.randomUUID();
+    await db
+      .prepare(
+        "INSERT INTO categories (category_id, user_id, name, kind, is_active, sort_order) VALUES (?, ?, ?, 'both', 1, ?)",
+      )
+      .bind(catId, userId, defaultCategories[i], i + 1)
+      .run();
+  }
+
   const token = await issueToken(userId, secret);
   const displayName = username ?? email.split("@")[0]!;
 
