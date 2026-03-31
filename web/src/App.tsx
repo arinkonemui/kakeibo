@@ -4,15 +4,17 @@ import { saveMonthly } from "./api";
 import { CategoryManager } from "./CategoryManager";
 import { DevUserBar } from "./DevUserBar";
 import { EntryModal } from "./EntryModal";
+import { ExportTab } from "./ExportTab";
 import { isEditableMonth } from "./monthUtils";
 import { LoginScreen } from "./LoginScreen";
 import { MonthlyTable } from "./MonthlyTable";
 import { SettingsTab } from "./SettingsTab";
-import type { CreateEntryOp, EntryRow, UpdateEntryOp } from "./types";
+import type { CreateEntryOp, EntryRow, MonthlyDataset, UpdateEntryOp } from "./types";
 import { WeeklyTable } from "./WeeklyTable";
 import { useAuth } from "./useAuth";
 import { useMonthly } from "./useMonthly";
 import { useOpsQueue } from "./useOpsQueue";
+import type { ArchiveRow } from "./csvUtils";
 
 /** Get current month as YYYY-MM */
 function currentMonthKey(): string {
@@ -69,7 +71,16 @@ function AppInner({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [conflictMsg, setConflictMsg] = useState<string | null>(null);
 
-  const editable = isEditableMonth(monthKey);
+  // --- Archive state（過去月の CSV アーカイブ表示用） ---
+  const [archive, setArchive] = useState<{
+    monthKey: string;
+    dataset: MonthlyDataset;
+  } | null>(null);
+
+  // アーカイブ表示中は常に読み取り専用。当月インポートは archive を使わず ops キューへ。
+  const effectiveData = archive?.dataset ?? data;
+  const effectiveMonthKey = archive?.monthKey ?? monthKey;
+  const editable = archive ? false : isEditableMonth(monthKey);
 
   // --- Month navigation with unsaved-changes guard ---
   const guardedSetMonthKey = useCallback(
@@ -78,6 +89,7 @@ function AppInner({
         if (!confirm("未保存の変更があります。破棄しますか？")) return;
         ops.reset();
       }
+      setArchive(null);
       setModal(null);
       setSaveError(null);
       setConflictMsg(null);
@@ -88,11 +100,67 @@ function AppInner({
 
   const handleDevChange = useCallback(() => {
     ops.reset();
+    setArchive(null);
     setModal(null);
     setSaveError(null);
     setConflictMsg(null);
     setTimeout(refetch, 50);
   }, [ops, refetch]);
+
+  // --- Archive handlers ---
+
+  /** 過去月：アーカイブ表示モード（読み取り専用） */
+  const handleLoadArchive = useCallback(
+    (dataset: MonthlyDataset, archMonthKey: string) => {
+      setArchive({ monthKey: archMonthKey, dataset });
+      setActiveTab("monthly");
+    },
+    [],
+  );
+
+  /** 当月：CSV エントリを ops キューへ取り込み（実カテゴリにマッピング） */
+  const handleImportCurrentMonth = useCallback(
+    (rows: ArchiveRow[], _archMonthKey: string) => {
+      if (!data) return;
+      // カテゴリ名 → 実 category_id のマップ
+      const catMap = new Map(
+        data.categories.map((c) => [c.name, c.category_id]),
+      );
+      let skipped = 0;
+      const creates: CreateEntryOp[] = [];
+      for (const row of rows) {
+        const catId = catMap.get(row.categoryName);
+        if (!catId) {
+          skipped++;
+          continue;
+        }
+        creates.push({
+          date: row.date,
+          type: row.type === "支出" ? "expense" : "income",
+          amount: row.amount,
+          category_id: catId,
+          memo: row.memo || undefined,
+          payment_method: row.paymentMethod || undefined,
+        });
+      }
+      for (const c of creates) {
+        ops.addEntry(c);
+      }
+      setActiveTab("monthly");
+      if (skipped > 0) {
+        setSaveError(
+          `${skipped}件のエントリはカテゴリが一致しないためスキップされました。`,
+        );
+      }
+    },
+    [data, ops],
+  );
+
+  /** アーカイブ表示を終了する */
+  const handleClearArchive = useCallback(() => {
+    setArchive(null);
+    setActiveTab("export");
+  }, []);
 
   // --- Merge local entries for display ---
   const localCreateIds = useMemo(
@@ -101,6 +169,8 @@ function AppInner({
   );
 
   const localEntries: EntryRow[] = useMemo(() => {
+    // アーカイブ表示中はアーカイブのエントリをそのまま使う（ops は適用しない）
+    if (archive) return archive.dataset.entries;
     if (!data) return [];
     const deleteSet = new Set(ops.queue.deleteIds);
     const updateMap = new Map(
@@ -137,7 +207,7 @@ function AppInner({
       updated_at: "",
     }));
     return [...kept, ...created];
-  }, [data, ops.queue, monthKey]);
+  }, [archive, data, ops.queue, monthKey]);
 
   // --- Cell click handler ---
   const handleCellClick = useCallback(
@@ -207,6 +277,7 @@ function AppInner({
 
   // --- Merge local daily budgets for display ---
   const localDailyBudgets = useMemo(() => {
+    if (archive) return new Map<string, number>(); // アーカイブ時は日予算なし
     const map = new Map<string, number>();
     if (data) {
       for (const db of data.daily_budgets) {
@@ -220,7 +291,7 @@ function AppInner({
       map.set(u.date, u.daily_budget_override);
     }
     return map;
-  }, [data, ops.queue]);
+  }, [archive, data, ops.queue]);
 
   // --- Modal entries for the selected cell ---
   const modalEntries = useMemo(() => {
@@ -231,9 +302,9 @@ function AppInner({
   }, [modal, localEntries]);
 
   const modalCategoryName = useMemo(() => {
-    if (!modal || !data) return "";
-    return data.categories.find((c) => c.category_id === modal.categoryId)?.name ?? "";
-  }, [modal, data]);
+    if (!modal || !effectiveData) return "";
+    return effectiveData.categories.find((c) => c.category_id === modal.categoryId)?.name ?? "";
+  }, [modal, effectiveData]);
 
   return (
     <div className="app">
@@ -307,8 +378,18 @@ function AppInner({
         ))}
       </nav>
 
+      {/* Archive banner（過去月読み取り専用） */}
+      {archive && (
+        <div className="archive-mode-banner">
+          <span>
+            アーカイブ表示のため保存できません（{archive.monthKey}）
+          </span>
+          <button onClick={handleClearArchive}>閉じる</button>
+        </div>
+      )}
+
       {/* Read-only banner */}
-      {!editable && data && (
+      {!archive && !editable && data && (
         <div className="read-only-banner">
           この月は閲覧専用です（編集可能期間外）
         </div>
@@ -327,13 +408,13 @@ function AppInner({
         <div className="save-error">エラー: {saveError}</div>
       )}
 
-      {loading && <p className="status">読み込み中…</p>}
-      {error && <p className="status error">エラー: {error}</p>}
+      {!archive && loading && <p className="status">読み込み中…</p>}
+      {!archive && error && <p className="status error">エラー: {error}</p>}
 
-      {data && activeTab === "monthly" && (
+      {effectiveData && activeTab === "monthly" && (
         <MonthlyTable
-          data={data}
-          monthKey={monthKey}
+          data={effectiveData}
+          monthKey={effectiveMonthKey}
           localEntries={localEntries}
           localDailyBudgets={localDailyBudgets}
           editable={editable}
@@ -341,10 +422,10 @@ function AppInner({
         />
       )}
 
-      {data && activeTab === "weekly" && (
+      {effectiveData && activeTab === "weekly" && (
         <WeeklyTable
-          data={data}
-          monthKey={monthKey}
+          data={effectiveData}
+          monthKey={effectiveMonthKey}
           localEntries={localEntries}
           localDailyBudgets={localDailyBudgets}
           editable={editable}
@@ -352,17 +433,17 @@ function AppInner({
         />
       )}
 
-      {data && activeTab === "aggregate" && (
+      {effectiveData && activeTab === "aggregate" && (
         <AggregateTab
-          data={data}
-          monthKey={monthKey}
+          data={effectiveData}
+          monthKey={effectiveMonthKey}
           localEntries={localEntries}
         />
       )}
 
-      {activeTab === "settings" && data && (
+      {activeTab === "settings" && effectiveData && !archive && (
         <SettingsTab
-          data={data}
+          data={effectiveData}
           monthKey={monthKey}
           localDailyBudgets={localDailyBudgets}
           editable={editable}
@@ -374,15 +455,29 @@ function AppInner({
           }}
         />
       )}
-
-      {activeTab === "export" && (
+      {activeTab === "settings" && archive && (
         <div className="tab-placeholder">
-          <p>出力タブは準備中です</p>
+          <p>アーカイブ表示中は予算設定を変更できません</p>
         </div>
       )}
 
-      {/* Save bar */}
-      {editable && ops.isDirty && (
+      {activeTab === "export" && data && (
+        <ExportTab
+          monthKey={monthKey}
+          data={data}
+          localEntries={archive ? [] : localEntries}
+          archiveActive={!!archive}
+          onLoadArchive={handleLoadArchive}
+          onImportCurrentMonth={handleImportCurrentMonth}
+          onClearArchive={handleClearArchive}
+        />
+      )}
+      {activeTab === "export" && !data && (
+        <div className="tab-placeholder"><p>データを読み込み中です</p></div>
+      )}
+
+      {/* Save bar — アーカイブ表示中は非表示 */}
+      {!archive && editable && ops.isDirty && (
         <div className="save-bar">
           <span>未保存の変更: {ops.pendingCount}件</span>
           <button onClick={handleSave} disabled={saving}>

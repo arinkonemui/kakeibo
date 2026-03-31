@@ -755,3 +755,42 @@ SPEC §2 で定義された5タブ構成を導入し、週間ビューを実装�
 ### Next Actions
 - Phase 6（出力タブ：CSV/PDF エクスポート）
 - RULES §2.2 キャッシュ（LRU 6ヶ月・TTL）
+
+---
+
+## 2026-04-01T00:00+09:00 — Phase 6 出力タブ（CSV ダウンロード・アーカイブ CSV 読み込み）実装
+
+### 目的
+SPEC §8.1 / §8.4 に基づき、出力タブを実装する。
+RULES §2.1: CSV 生成は既ロード済みデータのみ使用（追加 API コールなし）。
+SPEC §8.4 を Plan A に沿って更新（当月アーカイブは編集可能）。
+
+### 変更ファイル
+- `docs/SPEC.md` — §8.4 更新（取り込み不可条件・過去月 read-only・当月 editable を追記）
+- `web/src/csvUtils.ts` — 新規。CSV 生成・DL・パース・monthKey 導出・アーカイブ dataset 構築
+- `web/src/ExportTab.tsx` — 新規。出力タブ UI（CSV DL ボタン・アーカイブ CSV 読み込み）
+- `web/src/App.tsx` — ExportTab 追加・archive state・handleLoadArchive / handleImportCurrentMonth / handleClearArchive ハンドラ
+- `web/src/index.css` — 出力タブ・アーカイブバナー スタイル追加
+
+### 動作フロー
+1. 出力タブ → CSV ダウンロードボタンで現在月の明細を UTF-8 BOM 付き CSV 保存
+2. 「CSVファイルを選択」で過去にダウンロードした CSV を読み込む
+3. API で取り込み月の既存レコードを確認（④ 存在する場合はエラー表示）
+4. **過去月の場合** → archive state をセット → 月間・週間・集計タブに read-only 表示
+   黄色バナー「アーカイブ表示のため保存できません（YYYY-MM）」＋「閉じる」
+5. **当月の場合** → カテゴリ名を実カテゴリ ID にマッピング → ops キューへ CREATE 追加
+   通常の入力・保存フローで確定できる。未マッチカテゴリはスキップしてエラー件数を通知
+
+### Key Decisions
+1. **過去月 = read-only archive state**、**当月 = ops インポート** で明確に分離
+2. 当月インポートでカテゴリ名 → 実 ID マッピングを App 側で実施（csvUtils は display 用合成 ID のみ）
+3. アーカイブ表示中は save bar・日予算・予算タブを非表示（archive ? false : editable）
+4. PDF 出力は別フェーズ
+
+### Verification
+- tsc --noEmit エラーなし
+- 出力タブの UI 表示確認（CSS ダウンロードボタン・アーカイブ読み込みボタン）
+
+### Next Actions
+- Phase 6 残: PDF 出力（A4・2ページ固定）
+- RULES §2.2 LRU キャッシュ（6ヶ月・TTL 120分/24時間）

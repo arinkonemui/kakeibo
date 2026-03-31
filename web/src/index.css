@@ -1125,3 +1125,101 @@ body {
   color: #888;
   margin-top: 10px;
 }
+
+/* ===== 出力タブ ===== */
+.export-tab {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.export-section {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 16px 20px;
+}
+
+.export-section-title {
+  font-size: 1rem;
+  font-weight: bold;
+  color: var(--color-primary);
+  margin: 0 0 8px;
+}
+
+.export-desc {
+  font-size: 0.88rem;
+  color: #666;
+  margin: 0 0 12px;
+  line-height: 1.7;
+}
+
+.btn-export-csv {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  font-weight: bold;
+}
+.btn-export-csv:hover { opacity: 0.85; }
+
+.btn-export-archive {
+  background: #fff;
+  color: var(--color-primary);
+  border: 2px solid var(--color-primary);
+  border-radius: 6px;
+  padding: 9px 20px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  font-weight: bold;
+}
+.btn-export-archive:hover { background: #fef6ee; }
+.btn-export-archive:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-archive-close {
+  background: #888;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 9px 18px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  font-weight: bold;
+}
+.btn-archive-close:hover { opacity: 0.8; }
+
+.export-error {
+  color: #c0392b;
+  font-size: 0.88rem;
+  margin: 10px 0 0;
+}
+
+/* アーカイブモードバナー（過去月：読み取り専用） */
+.archive-mode-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-left: 4px solid #ffc107;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: #856404;
+}
+.archive-mode-banner button {
+  background: #856404;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.archive-mode-banner button:hover { opacity: 0.8; }
