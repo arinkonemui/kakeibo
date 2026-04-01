@@ -74,7 +74,7 @@ export function CategoryManager({ categories, onClose, onRefetch }: Props) {
 
   // --- Delete ---
   const handleDelete = async (cat: CategoryRow) => {
-    if (!window.confirm(`「${cat.name}」を削除しますか？\n既存の明細データは保持されます。`)) return;
+    if (!window.confirm(`「${cat.name}」を削除しますか？\nこのカテゴリの明細データも削除されます。`)) return;
     setLoading(true);
     setError(null);
     const result = await deleteCategory(cat.category_id);

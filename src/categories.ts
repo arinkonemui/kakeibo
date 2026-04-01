@@ -144,7 +144,7 @@ export async function handlePatchCategory(
   return jsonResponse(200, { ok: true, category: updated });
 }
 
-// DELETE /api/categories/:category_id (soft-delete: is_active=0)
+// DELETE /api/categories/:category_id (soft-delete: is_active=0 + delete related entries)
 export async function handleDeleteCategory(
   db: D1Database,
   user_id: string,
@@ -158,10 +158,18 @@ export async function handleDeleteCategory(
   if (!existing) return errorResponse(404, "Category not found.");
 
   const now = new Date().toISOString().replace("T", " ").slice(0, 19);
-  await db
-    .prepare("UPDATE categories SET is_active = 0, updated_at = ? WHERE category_id = ? AND user_id = ?")
-    .bind(now, category_id, user_id)
-    .run();
 
-  return jsonResponse(200, { ok: true });
+  // カテゴリのソフトデリート + 該当エントリの削除をバッチ実行
+  const results = await db.batch([
+    db
+      .prepare("DELETE FROM entries WHERE category_id = ? AND user_id = ?")
+      .bind(category_id, user_id),
+    db
+      .prepare("UPDATE categories SET is_active = 0, updated_at = ? WHERE category_id = ? AND user_id = ?")
+      .bind(now, category_id, user_id),
+  ]);
+
+  const deletedEntries = results[0]?.meta?.changes ?? 0;
+
+  return jsonResponse(200, { ok: true, deleted_entries: deletedEntries });
 }

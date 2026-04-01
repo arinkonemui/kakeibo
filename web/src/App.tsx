@@ -1,7 +1,8 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { AggregateTab } from "./AggregateTab";
-import { fetchMonthlyDataset, saveMonthly } from "./api";
+import { fetchMonthlyDataset, saveMonthly, updateCategory } from "./api";
 import { CategoryManager } from "./CategoryManager";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { EntryModal } from "./EntryModal";
 import { ExportTab } from "./ExportTab";
 import { isEditableMonth } from "./monthUtils";
@@ -77,6 +78,26 @@ function AppInner({
   const [archiveCommitting, setArchiveCommitting] = useState(false);
   const [archiveCommitError, setArchiveCommitError] = useState<string | null>(null);
 
+  // --- Custom confirm dialog ---
+  const [confirmState, setConfirmState] = useState<{ message: string } | null>(null);
+  const confirmResolveRef = useRef<((v: boolean) => void) | null>(null);
+  const showConfirm = useCallback((message: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      confirmResolveRef.current = resolve;
+      setConfirmState({ message });
+    });
+  }, []);
+  const handleConfirmOk = useCallback(() => {
+    confirmResolveRef.current?.(true);
+    confirmResolveRef.current = null;
+    setConfirmState(null);
+  }, []);
+  const handleConfirmCancel = useCallback(() => {
+    confirmResolveRef.current?.(false);
+    confirmResolveRef.current = null;
+    setConfirmState(null);
+  }, []);
+
   // アーカイブ表示中は常に読み取り専用
   const effectiveData = archive?.dataset ?? data;
   const effectiveMonthKey = archive?.monthKey ?? monthKey;
@@ -126,9 +147,15 @@ function AppInner({
       return;
     }
 
-    // エントリが1件でも残っている場合のみブロック
-    // （全削除済みで months レコードだけ残っているケースは反映を許可する）
-    if (existing.entries.length > 0) {
+    // 既存エントリの分類：アクティブカテゴリ vs 削除済みカテゴリ（孤立エントリ）
+    const activeCatIds = new Set(
+      data.categories.filter((c) => c.is_active === 1).map((c) => c.category_id),
+    );
+    const activeEntries = existing.entries.filter((e) => activeCatIds.has(e.category_id));
+    const orphanedEntries = existing.entries.filter((e) => !activeCatIds.has(e.category_id));
+
+    // アクティブなカテゴリのエントリが残っている場合はブロック
+    if (activeEntries.length > 0) {
       setArchiveCommitError(
         `${archive.monthKey}のデータが既に存在するため反映できません。` +
         `先にアプリからこの月のデータを削除してください。`,
@@ -137,27 +164,107 @@ function AppInner({
       return;
     }
 
+    // 孤立エントリ（削除済みカテゴリ）だけ残っている場合 → 確認の上で削除して進む
+    if (orphanedEntries.length > 0) {
+      const confirmed = await showConfirm(
+        `この月には削除済みカテゴリの明細が${orphanedEntries.length}件残っています。\n` +
+        `これらを削除してCSVデータを反映しますか？`,
+      );
+      if (!confirmed) {
+        setArchiveCommitting(false);
+        return;
+      }
+      // 孤立エントリを削除してバージョンを更新
+      const cleanupResult = await saveMonthly(archive.monthKey, existing.month?.version ?? 0, {
+        delete_entry_ids: orphanedEntries.map((e) => e.entry_id),
+      });
+      if ("conflict" in cleanupResult) {
+        setArchiveCommitError(cleanupResult.message);
+        setArchiveCommitting(false);
+        return;
+      }
+      if ("error" in cleanupResult) {
+        setArchiveCommitError(cleanupResult.error);
+        setArchiveCommitting(false);
+        return;
+      }
+      // 削除後のバージョンを使用
+      existing = await fetchMonthlyDataset(archive.monthKey);
+    }
+
     // months レコードが既にある場合はそのバージョンを使う（新規は 0）
     const expectedVersion = existing.month?.version ?? 0;
 
-    // カテゴリ名 → 実 category_id マッピング
-    const catMap = new Map(data.categories.map((c) => [c.name, c.category_id]));
-    let skipped = 0;
-    const creates: CreateEntryOp[] = [];
+    // 全カテゴリ（active+inactive）のマップを構築
+    const allCatMap = new Map(
+      data.categories.map((c) => [c.name, { id: c.category_id, active: c.is_active === 1 }]),
+    );
+
+    // エントリを分類
+    const activeCreates: CreateEntryOp[] = [];
+    const inactiveCreates: CreateEntryOp[] = [];
+    const inactiveCatNames = new Set<string>();
+    const inactiveCatIds = new Set<string>();
+    let unmatchedCount = 0;
+
     for (const entry of archive.dataset.entries) {
       const archiveCat = archive.dataset.categories.find(
         (c) => c.category_id === entry.category_id,
       );
-      const realCatId = archiveCat ? catMap.get(archiveCat.name) : undefined;
-      if (!realCatId) { skipped++; continue; }
-      creates.push({
+      const catName = archiveCat?.name;
+      const realCat = catName ? allCatMap.get(catName) : undefined;
+
+      if (!realCat) {
+        unmatchedCount++;
+        continue;
+      }
+
+      const op: CreateEntryOp = {
         date: entry.date,
         type: entry.type as "expense" | "income",
         amount: entry.amount,
-        category_id: realCatId,
+        category_id: realCat.id,
         memo: entry.memo ?? undefined,
         payment_method: entry.payment_method ?? undefined,
-      });
+      };
+
+      if (realCat.active) {
+        activeCreates.push(op);
+      } else {
+        inactiveCreates.push(op);
+        inactiveCatNames.add(catName!);
+        inactiveCatIds.add(realCat.id);
+      }
+    }
+
+    // 削除済みカテゴリのエントリがある場合 → 復元するか確認
+    let creates = [...activeCreates];
+    let skipped = unmatchedCount;
+
+    if (inactiveCreates.length > 0) {
+      const names = [...inactiveCatNames].join("、");
+      const confirmed = await showConfirm(
+        `${inactiveCreates.length}件のエントリは削除済みカテゴリに属しています。\n` +
+        `対象カテゴリ：${names}\n\n` +
+        `対象カテゴリを復元しますか？\n` +
+        `「OK」→ カテゴリを復元してエントリも反映\n` +
+        `「キャンセル」→ これらのエントリをスキップ`,
+      );
+
+      if (confirmed) {
+        // カテゴリ復元（PATCH is_active=1）
+        for (const catId of inactiveCatIds) {
+          const res = await updateCategory(catId, { is_active: 1 });
+          if ("error" in res) {
+            setArchiveCommitError(`カテゴリの復元に失敗しました: ${res.error}`);
+            setArchiveCommitting(false);
+            return;
+          }
+        }
+        creates = [...activeCreates, ...inactiveCreates];
+      } else {
+        skipped += inactiveCreates.length;
+      }
     }
 
     // 直接 DB 保存（既存 months レコードがあればそのバージョンで、なければ 0）
@@ -555,6 +662,14 @@ function AppInner({
             setCatManagerOpen(false);
             refetch();
           }}
+        />
+      )}
+
+      {confirmState && (
+        <ConfirmDialog
+          message={confirmState.message}
+          onOk={handleConfirmOk}
+          onCancel={handleConfirmCancel}
         />
       )}
     </div>

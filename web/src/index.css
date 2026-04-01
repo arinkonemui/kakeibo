@@ -1243,3 +1243,43 @@ body {
   width: 100%;
   font-weight: normal;
 }
+
+/* カスタム確認ダイアログ */
+.confirm-dialog {
+  max-width: 420px;
+  text-align: left;
+}
+.confirm-dialog-body {
+  white-space: pre-line;
+  font-size: 0.92rem;
+  line-height: 1.7;
+  color: var(--color-text);
+  margin-bottom: 20px;
+}
+.confirm-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.btn-confirm-ok,
+.btn-confirm-cancel {
+  border: none;
+  border-radius: 6px;
+  padding: 8px 24px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.btn-confirm-ok {
+  background: var(--color-primary);
+  color: #fff;
+}
+.btn-confirm-cancel {
+  background: #e0e0e0;
+  color: var(--color-text);
+}
+.btn-confirm-ok:hover,
+.btn-confirm-cancel:hover {
+  opacity: 0.8;
+}
