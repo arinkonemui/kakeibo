@@ -6,6 +6,7 @@ import {
   generateEntriesCsv,
   parseEntriesCsv,
 } from "./csvUtils";
+import { PdfPrintLayout } from "./PdfPrintLayout";
 import type { EntryRow, MonthlyDataset } from "./types";
 
 interface Props {
@@ -88,6 +89,22 @@ export function ExportTab({
 
   return (
     <div className="export-tab">
+      {/* PDF 出力 */}
+      <section className="export-section">
+        <h2 className="export-section-title">PDF出力</h2>
+        <p className="export-desc">
+          {monthLabel(monthKey)}の明細（1枚目）とグラフ・集計（2枚目）を
+          <br />
+          A4・2枚のPDFとして出力します。印刷ダイアログで「PDFとして保存」を選択してください。
+        </p>
+        <button
+          className="btn-export-pdf"
+          onClick={() => window.print()}
+        >
+          {monthLabel(monthKey)}のPDFを出力
+        </button>
+      </section>
+
       {/* CSV ダウンロード */}
       <section className="export-section">
         <h2 className="export-section-title">CSVダウンロード</h2>
@@ -135,6 +152,13 @@ export function ExportTab({
 
         {archiveError && <p className="export-error">{archiveError}</p>}
       </section>
+
+      {/* 印刷専用レイアウト（@media print でのみ表示） */}
+      <PdfPrintLayout
+        monthKey={monthKey}
+        data={data}
+        localEntries={localEntries}
+      />
     </div>
   );
 }
