@@ -105,9 +105,10 @@ function AppInner({
 
   // --- Month navigation with unsaved-changes guard ---
   const guardedSetMonthKey = useCallback(
-    (newKey: string) => {
+    async (newKey: string) => {
       if (ops.isDirty) {
-        if (!confirm("未保存の変更があります。破棄しますか？")) return;
+        const ok = await showConfirm("未保存の変更があります。破棄しますか？");
+        if (!ok) return;
         ops.reset();
       }
       setArchive(null);
@@ -116,7 +117,7 @@ function AppInner({
       setConflictMsg(null);
       setMonthKey(newKey);
     },
-    [ops],
+    [ops, showConfirm],
   );
 
   // --- Archive handlers ---
@@ -662,6 +663,7 @@ function AppInner({
             setCatManagerOpen(false);
             refetch();
           }}
+          showConfirm={showConfirm}
         />
       )}
 

@@ -6,9 +6,10 @@ interface Props {
   categories: CategoryRow[];
   onClose: () => void;
   onRefetch: () => void;
+  showConfirm: (message: string) => Promise<boolean>;
 }
 
-export function CategoryManager({ categories, onClose, onRefetch }: Props) {
+export function CategoryManager({ categories, onClose, onRefetch, showConfirm }: Props) {
   // Only show active categories; sorted by sort_order then name
   const [localCats, setLocalCats] = useState<CategoryRow[]>(
     [...categories]
@@ -74,7 +75,8 @@ export function CategoryManager({ categories, onClose, onRefetch }: Props) {
 
   // --- Delete ---
   const handleDelete = async (cat: CategoryRow) => {
-    if (!window.confirm(`「${cat.name}」を削除しますか？\nこのカテゴリの明細データも削除されます。`)) return;
+    const ok = await showConfirm(`「${cat.name}」を削除しますか？\nこのカテゴリの明細データも削除されます。`);
+    if (!ok) return;
     setLoading(true);
     setError(null);
     const result = await deleteCategory(cat.category_id);
