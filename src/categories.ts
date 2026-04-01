@@ -62,6 +62,28 @@ export async function handlePostCategory(
     .first<{ max_sort: number | null }>();
   const nextSort = (maxSortResult?.max_sort ?? -1) + 1;
 
+  // ソフトデリート済みの同名カテゴリが存在する場合は再アクティブ化
+  const existing = await db
+    .prepare("SELECT category_id, is_active FROM categories WHERE user_id = ? AND name = ?")
+    .bind(user_id, name)
+    .first<{ category_id: string; is_active: number }>();
+
+  if (existing) {
+    if (existing.is_active === 1) {
+      return errorResponse(409, `カテゴリ名「${name}」は既に存在します。`);
+    }
+    // 再アクティブ化
+    await db
+      .prepare("UPDATE categories SET is_active = 1, kind = ?, sort_order = ?, updated_at = ? WHERE category_id = ? AND user_id = ?")
+      .bind(kind, nextSort, now, existing.category_id, user_id)
+      .run();
+    const reactivated = await db
+      .prepare("SELECT category_id, user_id, name, kind, is_active, sort_order, created_at, updated_at FROM categories WHERE category_id = ?")
+      .bind(existing.category_id)
+      .first<CategoryRow>();
+    return jsonResponse(200, { ok: true, category: reactivated });
+  }
+
   try {
     await db
       .prepare(
