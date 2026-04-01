@@ -1262,6 +1262,7 @@ body {
   gap: 10px;
 }
 .btn-confirm-ok,
+.btn-confirm-alt,
 .btn-confirm-cancel {
   border: none;
   border-radius: 6px;
@@ -1275,11 +1276,36 @@ body {
   background: var(--color-primary);
   color: #fff;
 }
+.btn-confirm-alt {
+  background: var(--color-warm);
+  color: var(--color-text);
+}
 .btn-confirm-cancel {
   background: #e0e0e0;
   color: var(--color-text);
 }
 .btn-confirm-ok:hover,
+.btn-confirm-alt:hover,
 .btn-confirm-cancel:hover {
   opacity: 0.8;
+}
+
+/* 月データ削除ボタン */
+.month-delete-bar {
+  text-align: right;
+  margin: 8px 0;
+}
+.btn-delete-month {
+  background: none;
+  border: 1px solid var(--color-accent);
+  color: var(--color-accent);
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-delete-month:hover {
+  background: var(--color-accent);
+  color: #fff;
 }

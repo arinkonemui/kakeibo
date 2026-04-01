@@ -3,6 +3,7 @@ import { AggregateTab } from "./AggregateTab";
 import { fetchMonthlyDataset, saveMonthly, updateCategory } from "./api";
 import { CategoryManager } from "./CategoryManager";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { downloadCsvWithPicker, generateEntriesCsv } from "./csvUtils";
 import { EntryModal } from "./EntryModal";
 import { ExportTab } from "./ExportTab";
 import { isEditableMonth } from "./monthUtils";
@@ -78,22 +79,25 @@ function AppInner({
   const [archiveCommitting, setArchiveCommitting] = useState(false);
   const [archiveCommitError, setArchiveCommitError] = useState<string | null>(null);
 
-  // --- Custom confirm dialog ---
-  const [confirmState, setConfirmState] = useState<{ message: string } | null>(null);
-  const confirmResolveRef = useRef<((v: boolean) => void) | null>(null);
-  const showConfirm = useCallback((message: string): Promise<boolean> => {
-    return new Promise((resolve) => {
-      confirmResolveRef.current = resolve;
-      setConfirmState({ message });
-    });
-  }, []);
-  const handleConfirmOk = useCallback(() => {
-    confirmResolveRef.current?.(true);
-    confirmResolveRef.current = null;
-    setConfirmState(null);
-  }, []);
-  const handleConfirmCancel = useCallback(() => {
-    confirmResolveRef.current?.(false);
+  // --- Custom confirm dialog (2択 or 3択) ---
+  type ConfirmResult = "ok" | "alt" | "cancel";
+  interface ConfirmOpts { okLabel?: string; cancelLabel?: string; altLabel?: string }
+  const [confirmState, setConfirmState] = useState<{
+    message: string;
+    opts?: ConfirmOpts;
+  } | null>(null);
+  const confirmResolveRef = useRef<((v: ConfirmResult) => void) | null>(null);
+  const showConfirm = useCallback(
+    (message: string, opts?: ConfirmOpts): Promise<ConfirmResult> => {
+      return new Promise((resolve) => {
+        confirmResolveRef.current = resolve;
+        setConfirmState({ message, opts });
+      });
+    },
+    [],
+  );
+  const resolveConfirm = useCallback((result: ConfirmResult) => {
+    confirmResolveRef.current?.(result);
     confirmResolveRef.current = null;
     setConfirmState(null);
   }, []);
@@ -107,8 +111,8 @@ function AppInner({
   const guardedSetMonthKey = useCallback(
     async (newKey: string) => {
       if (ops.isDirty) {
-        const ok = await showConfirm("未保存の変更があります。破棄しますか？");
-        if (!ok) return;
+        const result = await showConfirm("未保存の変更があります。破棄しますか？");
+        if (result !== "ok") return;
         ops.reset();
       }
       setArchive(null);
@@ -171,7 +175,7 @@ function AppInner({
         `この月には削除済みカテゴリの明細が${orphanedEntries.length}件残っています。\n` +
         `これらを削除してCSVデータを反映しますか？`,
       );
-      if (!confirmed) {
+      if (confirmed !== "ok") {
         setArchiveCommitting(false);
         return;
       }
@@ -252,7 +256,7 @@ function AppInner({
         `「キャンセル」→ これらのエントリをスキップ`,
       );
 
-      if (confirmed) {
+      if (confirmed === "ok") {
         // カテゴリ復元（PATCH is_active=1）
         for (const catId of inactiveCatIds) {
           const res = await updateCategory(catId, { is_active: 1 });
@@ -408,6 +412,47 @@ function AppInner({
     setSaving(false);
     refetch();
   }, [data, monthKey, ops, refetch]);
+
+  // --- Delete month data ---
+  const handleDeleteMonth = useCallback(async () => {
+    if (!data) return;
+    const hasEntries = data.entries.length > 0;
+    const hasBudgets = data.daily_budgets.length > 0;
+    if (!hasEntries && !hasBudgets) return;
+
+    const result = await showConfirm(
+      `${monthKey}のデータを削除しますか？\n削除前にCSVへアーカイブ保存しますか？`,
+      { okLabel: "CSVを保存して削除", altLabel: "削除のみ", cancelLabel: "キャンセル" },
+    );
+    if (result === "cancel") return;
+
+    if (result === "ok" && hasEntries) {
+      const csv = generateEntriesCsv(data.entries, data.categories);
+      const saved = await downloadCsvWithPicker(csv, `osaifu_${monthKey}_entries.csv`);
+      if (!saved) return; // ユーザーがファイル保存をキャンセル → 削除しない
+    }
+
+    setSaving(true);
+    setSaveError(null);
+    const deleteResult = await saveMonthly(monthKey, data.month?.version ?? 0, {
+      delete_entry_ids: data.entries.map((e) => e.entry_id),
+      delete_daily_budget_dates: data.daily_budgets.map((db) => db.date),
+    });
+    setSaving(false);
+
+    if ("conflict" in deleteResult) {
+      setConflictMsg(deleteResult.message);
+      return;
+    }
+    if ("error" in deleteResult) {
+      setSaveError(deleteResult.error);
+      return;
+    }
+
+    ops.reset();
+    setModal(null);
+    refetch();
+  }, [data, monthKey, ops, showConfirm, refetch]);
 
   // --- Conflict reload ---
   const handleConflictReload = useCallback(() => {
@@ -627,6 +672,16 @@ function AppInner({
         <div className="tab-placeholder"><p>データを読み込み中です</p></div>
       )}
 
+      {/* Delete month bar — 月間・週間タブでデータがある場合のみ */}
+      {!archive && editable && data && (data.entries.length > 0 || data.daily_budgets.length > 0) &&
+        (activeTab === "monthly" || activeTab === "weekly") && (
+        <div className="month-delete-bar">
+          <button className="btn-delete-month" onClick={handleDeleteMonth} disabled={saving}>
+            この月のデータを削除
+          </button>
+        </div>
+      )}
+
       {/* Save bar — アーカイブ表示中は非表示 */}
       {!archive && editable && ops.isDirty && (
         <div className="save-bar">
@@ -670,8 +725,12 @@ function AppInner({
       {confirmState && (
         <ConfirmDialog
           message={confirmState.message}
-          onOk={handleConfirmOk}
-          onCancel={handleConfirmCancel}
+          onOk={() => resolveConfirm("ok")}
+          onCancel={() => resolveConfirm("cancel")}
+          onAlt={confirmState.opts?.altLabel ? () => resolveConfirm("alt") : undefined}
+          okLabel={confirmState.opts?.okLabel}
+          cancelLabel={confirmState.opts?.cancelLabel}
+          altLabel={confirmState.opts?.altLabel}
         />
       )}
     </div>

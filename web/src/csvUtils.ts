@@ -63,6 +63,39 @@ export function downloadCsv(content: string, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
+type WindowWithPicker = Window & {
+  showSaveFilePicker: (opts: unknown) => Promise<FileSystemFileHandle>;
+};
+
+/**
+ * File System Access API でファイル保存ダイアログを開き、CSV を保存する。
+ * ユーザーがキャンセルした場合は false を返す（削除を中断できる）。
+ * showSaveFilePicker 非対応ブラウザ（Firefox等）はアンカー方式にフォールバックし true を返す。
+ */
+export async function downloadCsvWithPicker(
+  csv: string,
+  filename: string,
+): Promise<boolean> {
+  try {
+    if (typeof (window as unknown as WindowWithPicker).showSaveFilePicker === "function") {
+      const handle = await (window as unknown as WindowWithPicker).showSaveFilePicker({
+        suggestedName: filename,
+        types: [{ description: "CSV", accept: { "text/csv": [".csv"] } }],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
+      await writable.close();
+      return true;
+    } else {
+      downloadCsv(csv, filename);
+      return true;
+    }
+  } catch (e: unknown) {
+    if (e instanceof Error && e.name === "AbortError") return false;
+    throw e;
+  }
+}
+
 // ──────────────────────────────────────────
 // CSV インポート（アーカイブ）
 // ──────────────────────────────────────────
