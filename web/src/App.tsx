@@ -2,7 +2,6 @@ import { useCallback, useMemo, useState } from "react";
 import { AggregateTab } from "./AggregateTab";
 import { fetchMonthlyDataset, saveMonthly } from "./api";
 import { CategoryManager } from "./CategoryManager";
-import { DevUserBar } from "./DevUserBar";
 import { EntryModal } from "./EntryModal";
 import { ExportTab } from "./ExportTab";
 import { isEditableMonth } from "./monthUtils";
@@ -98,15 +97,6 @@ function AppInner({
     },
     [ops],
   );
-
-  const handleDevChange = useCallback(() => {
-    ops.reset();
-    setArchive(null);
-    setModal(null);
-    setSaveError(null);
-    setConflictMsg(null);
-    setTimeout(refetch, 50);
-  }, [ops, refetch]);
 
   // --- Archive handlers ---
 
@@ -366,8 +356,6 @@ function AppInner({
           </div>
         )}
       </header>
-
-      <DevUserBar onChange={handleDevChange} />
 
       <div className="month-selector">
         <button
