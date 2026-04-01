@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { cacheClear } from "./monthlyCache";
 
 const TOKEN_KEY = "osaifu_token";
 const USER_ID_KEY = "osaifu_user_id";
@@ -28,6 +29,7 @@ export function useAuth() {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_ID_KEY);
     localStorage.removeItem(DISPLAY_NAME_KEY);
+    cacheClear();
     setAuth({ token: null, userId: null, displayName: null });
   }
 
