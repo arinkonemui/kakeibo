@@ -99,21 +99,19 @@ export function MonthlyTable({ data, monthKey, localEntries, localDailyBudgets, 
   return (
     <div className="monthly-table-wrapper">
       {/* Summary header */}
-      <div className="month-summary">
-        {monthlyBudget != null && (
-          <>
-            <span className="summary-item">
-              月予算: ¥{fmt(monthlyBudget)}
-            </span>
-            <span
-              className="summary-item"
-              style={{ color: remaining! < 0 ? "#e74c3c" : "#27ae60" }}
-            >
-              月残: ¥{fmt(remaining!)}
-            </span>
-          </>
-        )}
-      </div>
+      {monthlyBudget != null && (
+        <div className="month-summary">
+          <span className="summary-item">
+            月予算: ¥{fmt(monthlyBudget)}
+          </span>
+          <span
+            className="summary-item"
+            style={{ color: remaining! < 0 ? "#e74c3c" : "#27ae60" }}
+          >
+            月残: ¥{fmt(remaining!)}
+          </span>
+        </div>
+      )}
 
       <div className="table-scroll">
         <table className="monthly-table">

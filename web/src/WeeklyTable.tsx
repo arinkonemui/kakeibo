@@ -126,21 +126,19 @@ export function WeeklyTable({
   return (
     <div className="weekly-view">
       {/* Summary header (same as MonthlyTable) */}
-      <div className="month-summary">
-        {monthlyBudget != null && (
-          <>
-            <span className="summary-item">
-              月予算: ¥{fmt(monthlyBudget)}
-            </span>
-            <span
-              className="summary-item"
-              style={{ color: remaining! < 0 ? "#e74c3c" : "#27ae60" }}
-            >
-              月残: ¥{fmt(remaining!)}
-            </span>
-          </>
-        )}
-      </div>
+      {monthlyBudget != null && (
+        <div className="month-summary">
+          <span className="summary-item">
+            月予算: ¥{fmt(monthlyBudget)}
+          </span>
+          <span
+            className="summary-item"
+            style={{ color: remaining! < 0 ? "#e74c3c" : "#27ae60" }}
+          >
+            月残: ¥{fmt(remaining!)}
+          </span>
+        </div>
+      )}
 
       {weeks.map((week) => {
         // Compute per-week category totals and week total
