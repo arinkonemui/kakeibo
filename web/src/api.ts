@@ -156,8 +156,10 @@ export async function deleteCategory(
 
 // --- Fixed expenses ---
 
-export async function fetchFixedExpenses(): Promise<FixedExpenseRow[]> {
-  const res = await fetch("/api/fixed-expenses", { headers: buildHeaders() });
+export async function fetchFixedExpenses(monthKey: string): Promise<FixedExpenseRow[]> {
+  const res = await fetch(`/api/fixed-expenses?month_key=${monthKey}`, {
+    headers: buildHeaders(),
+  });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error((body as { error?: string }).error ?? `HTTP ${res.status}`);
@@ -167,6 +169,7 @@ export async function fetchFixedExpenses(): Promise<FixedExpenseRow[]> {
 }
 
 export async function createFixedExpense(
+  monthKey: string,
   name: string,
   icon_key: string,
   amount: number,
@@ -174,7 +177,7 @@ export async function createFixedExpense(
   const res = await fetch("/api/fixed-expenses", {
     method: "POST",
     headers: { ...buildHeaders(), "Content-Type": "application/json" },
-    body: JSON.stringify({ name, icon_key, amount }),
+    body: JSON.stringify({ month_key: monthKey, name, icon_key, amount }),
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {

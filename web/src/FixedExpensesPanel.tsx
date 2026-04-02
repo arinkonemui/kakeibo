@@ -1,18 +1,30 @@
 /**
- * FixedExpensesPanel — 月間・週間タブの左サイドバー（表示専用）
- * 編集は「固定費管理」ボタン → 予算タブ（SettingsTab の FixedExpensesSection）で行う。
+ * FixedExpensesPanel — 月間・週間タブの左サイドバー（編集可能）
+ * useFixedExpenses hook からデータを受け取り、金額を直接編集できる。
+ * カテゴリ管理（追加/削除/名前変更）は「カテゴリ管理」ボタン → FixedExpensesManager モーダル。
  */
-import { useEffect, useState } from "react";
-import { fetchFixedExpenses } from "./api";
-import type { FixedExpenseRow } from "./types";
+import type { UseFixedExpensesReturn } from "./useFixedExpenses";
 
 const ICON_MAP: Record<string, string> = {
-  home:   "🏠",
-  flame:  "🔥",
-  faucet: "🚰",
-  bulb:   "💡",
-  phone:  "📶",
-  custom: "📌",
+  home:      "🏠",
+  flame:     "🔥",
+  faucet:    "🚰",
+  bulb:      "💡",
+  phone:     "📶",
+  train:     "🚇",
+  monitor:   "🖥️",
+  clothes:   "👕",
+  cosmetics: "💄",
+  furniture: "🛏️",
+  car:       "🚗",
+  food:      "🍽️",
+  cafe:      "☕",
+  video:     "🎬",
+  book:      "📚",
+  music:     "🎵",
+  education: "🎓",
+  game:      "🎮",
+  custom:    "📌",
 };
 
 function fmt(n: number): string {
@@ -20,65 +32,79 @@ function fmt(n: number): string {
 }
 
 interface Props {
-  /** 「固定費管理」ボタン押下時のコールバック（予算タブへ切替など） */
+  fx: UseFixedExpensesReturn;
+  /** 「固定費カテゴリ管理」ボタン押下時のコールバック */
   onManage: () => void;
 }
 
-export function FixedExpensesPanel({ onManage }: Props) {
-  const [items, setItems] = useState<FixedExpenseRow[]>([]);
-  const [loading, setLoading] = useState(true);
+export function FixedExpensesPanel({ fx, onManage }: Props) {
+  const { items, loading, error, draftAmounts, setDraftAmounts, saving, savedMsg, handleSaveAll } = fx;
 
-  useEffect(() => {
-    let cancelled = false;
-    fetchFixedExpenses()
-      .then((data) => {
-        if (!cancelled) {
-          setItems(data);
-          setLoading(false);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const total = items.reduce((sum, i) => sum + i.amount, 0);
+  const total = items.reduce((sum, item) => {
+    const draft = draftAmounts[item.fixed_expense_id] ?? "";
+    const v = draft === "" ? 0 : parseInt(draft, 10);
+    return sum + (isNaN(v) ? 0 : v);
+  }, 0);
 
   return (
     <div className="fixed-panel">
       <div className="fixed-panel-header">
         <span className="fixed-panel-title">固定費</span>
         <button className="btn-open-cat" onClick={onManage}>
-          固定費管理
+          カテゴリ管理
         </button>
       </div>
 
-      {loading ? (
-        <p className="fixed-panel-loading">読み込み中…</p>
-      ) : (
-        <ul className="fixed-panel-list">
-          {items.map((item) => (
-            <li key={item.fixed_expense_id} className="fixed-panel-item">
-              <span className="fixed-panel-icon">
-                {ICON_MAP[item.icon_key] ?? "📌"}
-              </span>
-              <span className="fixed-panel-name" title={item.name}>
-                {item.name}
-              </span>
-              <span className="fixed-panel-amount">
-                {item.amount > 0 ? `¥${fmt(item.amount)}` : ""}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
+      {loading && <p className="fixed-panel-loading">読み込み中…</p>}
+      {error && <p className="budget-error" style={{ fontSize: "0.8rem", padding: "4px" }}>{error}</p>}
 
-      <div className="fixed-panel-total">
-        固定費合計: <strong>¥{fmt(total)}</strong>
-      </div>
+      {!loading && (
+        <>
+          <ul className="fixed-panel-list">
+            {items.length === 0 && (
+              <li className="fixed-panel-empty">固定費がありません</li>
+            )}
+            {items.map((item) => (
+              <li key={item.fixed_expense_id} className="fixed-panel-item">
+                <span className="fixed-panel-icon">
+                  {ICON_MAP[item.icon_key] ?? "📌"}
+                </span>
+                <span className="fixed-panel-name" title={item.name}>
+                  {item.name}
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  className="fixed-panel-amount-input"
+                  value={draftAmounts[item.fixed_expense_id] ?? ""}
+                  onChange={(e) =>
+                    setDraftAmounts((prev) => ({
+                      ...prev,
+                      [item.fixed_expense_id]: e.target.value,
+                    }))
+                  }
+                  placeholder="0"
+                />
+              </li>
+            ))}
+          </ul>
+
+          <div className="fixed-panel-total">
+            固定費合計: <strong>¥{fmt(total)}</strong>
+          </div>
+
+          <div className="fixed-panel-actions">
+            <button
+              className="btn-add fixed-panel-save-btn"
+              onClick={() => void handleSaveAll()}
+              disabled={saving}
+            >
+              {saving ? "保存中…" : "保存"}
+            </button>
+            {savedMsg && <span className="fixed-panel-saved">保存しました</span>}
+          </div>
+        </>
+      )}
     </div>
   );
 }

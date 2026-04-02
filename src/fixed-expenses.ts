@@ -1,9 +1,13 @@
 /**
  * Fixed expenses CRUD handlers for /api/fixed-expenses
- * Stored at user level (no month_key) — carries over across months automatically.
+ * Stored per (user_id, month_key).
+ * On first GET for a month: copy from prev month → fallback to 5 defaults.
  */
 
-const VALID_ICON_KEYS = new Set(["home", "flame", "faucet", "bulb", "phone", "custom"]);
+const VALID_ICON_KEYS = new Set([
+  "home", "flame", "faucet", "bulb", "phone", "train", "monitor", "clothes", "cosmetics", "furniture", "car", "food", "cafe",
+  "video", "book", "music", "education", "game", "custom"
+]);
 
 const DEFAULTS = [
   { name: "家賃",   icon_key: "home",   sort_order: 0 },
@@ -30,6 +34,7 @@ function jsonResponse(status: number, body: unknown): Response {
 interface FixedExpenseRow {
   fixed_expense_id: string;
   user_id: string;
+  month_key: string;
   name: string;
   icon_key: string;
   amount: number;
@@ -40,40 +45,90 @@ interface FixedExpenseRow {
 }
 
 const SELECT_COLS =
-  "fixed_expense_id, user_id, name, icon_key, amount, is_default, sort_order, created_at, updated_at";
+  "fixed_expense_id, user_id, month_key, name, icon_key, amount, is_default, sort_order, created_at, updated_at";
 
-const ORDER_BY = "ORDER BY CASE WHEN sort_order IS NULL THEN 1 ELSE 0 END, sort_order ASC, created_at ASC";
+const ORDER_BY =
+  "ORDER BY CASE WHEN sort_order IS NULL THEN 1 ELSE 0 END, sort_order ASC, created_at ASC";
 
-// GET /api/fixed-expenses
+/** YYYY-MM → 1つ前の月キー（例: "2026-01" → "2025-12"） */
+function prevMonthKey(monthKey: string): string {
+  const [y, m] = monthKey.split("-").map(Number) as [number, number];
+  const d = new Date(y, m - 2, 1); // month は 0-indexed
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+// GET /api/fixed-expenses?month_key=YYYY-MM
 export async function handleGetFixedExpenses(
   db: D1Database,
   user_id: string,
+  month_key: string,
 ): Promise<Response> {
+  if (!/^\d{4}-\d{2}$/.test(month_key)) {
+    return errorResponse(400, "month_key must be YYYY-MM format.");
+  }
+
   const rows = await db
-    .prepare(`SELECT ${SELECT_COLS} FROM fixed_expenses WHERE user_id = ? ${ORDER_BY}`)
-    .bind(user_id)
+    .prepare(
+      `SELECT ${SELECT_COLS} FROM fixed_expenses WHERE user_id = ? AND month_key = ? ${ORDER_BY}`,
+    )
+    .bind(user_id, month_key)
     .all<FixedExpenseRow>();
 
-  // 初回アクセス時にデフォルト5件をシード（INSERT OR IGNORE で冪等）
-  if (rows.results.length === 0) {
-    const now = new Date().toISOString().replace("T", " ").slice(0, 19);
+  if (rows.results.length > 0) {
+    return jsonResponse(200, { ok: true, items: rows.results });
+  }
+
+  // 初回アクセス — 前月からコピーを試みる
+  const now = new Date().toISOString().replace("T", " ").slice(0, 19);
+  const prev = prevMonthKey(month_key);
+
+  const prevRows = await db
+    .prepare(
+      `SELECT ${SELECT_COLS} FROM fixed_expenses WHERE user_id = ? AND month_key = ? ${ORDER_BY}`,
+    )
+    .bind(user_id, prev)
+    .all<FixedExpenseRow>();
+
+  if (prevRows.results.length > 0) {
+    // 前月データをコピー（金額も引き継ぎ）
+    const stmts = prevRows.results.map((r) =>
+      db
+        .prepare(
+          "INSERT OR IGNORE INTO fixed_expenses (fixed_expense_id, user_id, month_key, name, icon_key, amount, is_default, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        )
+        .bind(
+          crypto.randomUUID(),
+          user_id,
+          month_key,
+          r.name,
+          r.icon_key,
+          r.amount,
+          r.is_default,
+          r.sort_order,
+          now,
+          now,
+        ),
+    );
+    await db.batch(stmts);
+  } else {
+    // 前月もなければデフォルト5件をシード
     const stmts = DEFAULTS.map((d) =>
       db
         .prepare(
-          "INSERT OR IGNORE INTO fixed_expenses (fixed_expense_id, user_id, name, icon_key, amount, is_default, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, 0, 1, ?, ?, ?)",
+          "INSERT OR IGNORE INTO fixed_expenses (fixed_expense_id, user_id, month_key, name, icon_key, amount, is_default, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 0, 1, ?, ?, ?)",
         )
-        .bind(crypto.randomUUID(), user_id, d.name, d.icon_key, d.sort_order, now, now),
+        .bind(crypto.randomUUID(), user_id, month_key, d.name, d.icon_key, d.sort_order, now, now),
     );
     await db.batch(stmts);
-
-    const seeded = await db
-      .prepare(`SELECT ${SELECT_COLS} FROM fixed_expenses WHERE user_id = ? ${ORDER_BY}`)
-      .bind(user_id)
-      .all<FixedExpenseRow>();
-    return jsonResponse(200, { ok: true, items: seeded.results });
   }
 
-  return jsonResponse(200, { ok: true, items: rows.results });
+  const seeded = await db
+    .prepare(
+      `SELECT ${SELECT_COLS} FROM fixed_expenses WHERE user_id = ? AND month_key = ? ${ORDER_BY}`,
+    )
+    .bind(user_id, month_key)
+    .all<FixedExpenseRow>();
+  return jsonResponse(200, { ok: true, items: seeded.results });
 }
 
 // POST /api/fixed-expenses
@@ -92,6 +147,11 @@ export async function handlePostFixedExpense(
   if (!body || typeof body !== "object") return errorResponse(400, "Invalid body.");
   const b = body as Record<string, unknown>;
 
+  const month_key = typeof b.month_key === "string" ? b.month_key : "";
+  if (!/^\d{4}-\d{2}$/.test(month_key)) {
+    return errorResponse(400, "month_key must be YYYY-MM format.");
+  }
+
   const name = typeof b.name === "string" ? b.name.trim() : "";
   if (!name || name.length > 50) return errorResponse(400, "name must be 1–50 characters.");
 
@@ -107,10 +167,12 @@ export async function handlePostFixedExpense(
       : null;
   if (amount === null) return errorResponse(400, "amount must be a non-negative integer.");
 
-  // Determine next sort_order
+  // Determine next sort_order for this month
   const maxSortResult = await db
-    .prepare("SELECT MAX(sort_order) as max_sort FROM fixed_expenses WHERE user_id = ?")
-    .bind(user_id)
+    .prepare(
+      "SELECT MAX(sort_order) as max_sort FROM fixed_expenses WHERE user_id = ? AND month_key = ?",
+    )
+    .bind(user_id, month_key)
     .first<{ max_sort: number | null }>();
   const nextSort = (maxSortResult?.max_sort ?? -1) + 1;
 
@@ -120,9 +182,9 @@ export async function handlePostFixedExpense(
   try {
     await db
       .prepare(
-        "INSERT INTO fixed_expenses (fixed_expense_id, user_id, name, icon_key, amount, is_default, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)",
+        "INSERT INTO fixed_expenses (fixed_expense_id, user_id, month_key, name, icon_key, amount, is_default, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)",
       )
-      .bind(fixed_expense_id, user_id, name, icon_key, amount, nextSort, now, now)
+      .bind(fixed_expense_id, user_id, month_key, name, icon_key, amount, nextSort, now, now)
       .run();
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -158,7 +220,9 @@ export async function handlePatchFixedExpense(
   const b = body as Record<string, unknown>;
 
   const existing = await db
-    .prepare("SELECT name, icon_key, amount FROM fixed_expenses WHERE fixed_expense_id = ? AND user_id = ?")
+    .prepare(
+      "SELECT name, icon_key, amount FROM fixed_expenses WHERE fixed_expense_id = ? AND user_id = ?",
+    )
     .bind(fixed_expense_id, user_id)
     .first<{ name: string; icon_key: string; amount: number }>();
 
@@ -215,7 +279,9 @@ export async function handleDeleteFixedExpense(
   fixed_expense_id: string,
 ): Promise<Response> {
   const existing = await db
-    .prepare("SELECT is_default FROM fixed_expenses WHERE fixed_expense_id = ? AND user_id = ?")
+    .prepare(
+      "SELECT is_default FROM fixed_expenses WHERE fixed_expense_id = ? AND user_id = ?",
+    )
     .bind(fixed_expense_id, user_id)
     .first<{ is_default: number }>();
 

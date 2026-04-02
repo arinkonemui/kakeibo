@@ -6,6 +6,7 @@ import { ConfirmDialog } from "./ConfirmDialog";
 import { downloadCsvWithPicker, generateEntriesCsv } from "./csvUtils";
 import { EntryModal } from "./EntryModal";
 import { ExportTab } from "./ExportTab";
+import { FixedExpensesManager } from "./FixedExpensesManager";
 import { FixedExpensesPanel } from "./FixedExpensesPanel";
 import { isEditableMonth } from "./monthUtils";
 import { LoginScreen } from "./LoginScreen";
@@ -14,6 +15,7 @@ import { SettingsTab } from "./SettingsTab";
 import type { CreateEntryOp, EntryRow, MonthlyDataset, UpdateEntryOp } from "./types";
 import { WeeklyTable } from "./WeeklyTable";
 import { useAuth } from "./useAuth";
+import { useFixedExpenses } from "./useFixedExpenses";
 import { useMonthly } from "./useMonthly";
 import { useOpsQueue } from "./useOpsQueue";
 
@@ -59,6 +61,7 @@ function AppInner({
   const [monthKey, setMonthKey] = useState(currentMonthKey);
   const { data, loading, error, refetch } = useMonthly(monthKey);
   const ops = useOpsQueue();
+  const fx = useFixedExpenses(monthKey);
 
   // Tab state
   const [activeTab, setActiveTab] = useState<TabId>("monthly");
@@ -66,6 +69,7 @@ function AppInner({
   // Modal state
   const [modal, setModal] = useState<ModalState | null>(null);
   const [catManagerOpen, setCatManagerOpen] = useState(false);
+  const [feManagerOpen, setFeManagerOpen] = useState(false);
 
   // Save status
   const [saving, setSaving] = useState(false);
@@ -605,7 +609,7 @@ function AppInner({
 
       {(activeTab === "monthly" || activeTab === "weekly") && (
         <div className="table-with-panel">
-          <FixedExpensesPanel onManage={() => setActiveTab("settings")} />
+          <FixedExpensesPanel fx={fx} onManage={() => setFeManagerOpen(true)} />
           <div className="table-main-area">
             <div className="table-toolbar">
               {effectiveData && (() => {
@@ -735,6 +739,15 @@ function AppInner({
             refetch();
           }}
           showConfirm={showConfirm}
+        />
+      )}
+
+      {feManagerOpen && (
+        <FixedExpensesManager
+          items={fx.items}
+          onClose={() => setFeManagerOpen(false)}
+          showConfirm={showConfirm}
+          fx={fx}
         />
       )}
 

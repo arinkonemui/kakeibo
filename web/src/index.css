@@ -1590,11 +1590,20 @@ body {
   font-size: 0.9rem;
 }
 
-.fixed-panel-amount {
+.fixed-panel-amount-input {
+  width: 72px;
+  padding: 3px 5px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
   font-size: 0.85rem;
-  color: var(--color-text);
-  white-space: nowrap;
   text-align: right;
+  flex-shrink: 0;
+}
+
+.fixed-panel-empty {
+  font-size: 0.85rem;
+  color: #aaa;
+  padding: 4px 0;
 }
 
 .fixed-panel-total {
@@ -1602,6 +1611,37 @@ body {
   text-align: right;
   margin-top: 8px;
   color: #555;
+}
+
+.fixed-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.fixed-panel-save-btn {
+  font-size: 0.8rem !important;
+  padding: 4px 10px !important;
+}
+
+.fixed-panel-saved {
+  font-size: 0.8rem;
+  color: var(--color-primary);
+}
+
+/* FixedExpensesManager — アイコン選択 */
+.fe-manager-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.fe-manager-icon-select {
+  padding: 4px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  flex-shrink: 0;
 }
 
 /* テーブルエリア（カテゴリ管理ボタン＋テーブル） */
@@ -1623,111 +1663,4 @@ body {
   color: var(--color-text);
 }
 
-/* ===== 固定費セクション ===== */
-.fixed-expense-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-
-.fixed-expense-card {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  background: #fff;
-  font-size: 0.9rem;
-  min-width: 0; /* flex overflow 防止 */
-}
-
-.fixed-expense-icon {
-  font-size: 1.3rem;
-  flex-shrink: 0;
-  line-height: 1;
-}
-
-.fixed-expense-name {
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 0.9rem;
-  min-width: 0;
-}
-
-.fixed-expense-amount-input {
-  width: 80px;
-  padding: 4px 6px;
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  font-size: 0.9rem;
-  text-align: right;
-  flex-shrink: 0;
-}
-
-.fixed-expense-delete {
-  flex-shrink: 0;
-  padding: 2px 6px;
-  font-size: 0.75rem;
-}
-
-.fixed-expense-total {
-  font-size: 0.9rem;
-  color: #555;
-  margin-top: 6px;
-  text-align: right;
-}
-
-.fixed-expense-add-btn {
-  background: #888 !important;
-}
-
-/* 追加フォーム */
-.fixed-expense-add-form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: flex-end;
-  margin-top: 12px;
-  padding: 10px;
-  border: 1px dashed var(--color-border);
-  border-radius: 6px;
-  background: #fafafa;
-}
-
-.fixed-expense-add-form label {
-  display: flex;
-  flex-direction: column;
-  font-size: 0.85rem;
-  gap: 4px;
-}
-
-.fixed-expense-add-form input,
-.fixed-expense-add-form select {
-  padding: 6px 8px;
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  font-size: 0.9rem;
-}
-
-.fixed-expense-add-form input[type="number"] {
-  width: 100px;
-}
-
-.fixed-expense-add-actions {
-  display: flex;
-  gap: 6px;
-  align-items: flex-end;
-  padding-bottom: 0;
-}
-
-/* 360px 以下は1カラム */
-@media (max-width: 360px) {
-  .fixed-expense-grid {
-    grid-template-columns: 1fr;
-  }
-}
 

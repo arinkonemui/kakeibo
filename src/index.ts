@@ -185,7 +185,9 @@ export default {
     }
 
     if (url.pathname === "/api/fixed-expenses" && request.method === "GET") {
-      return handleGetFixedExpenses(env.DB, user_id);
+      const month_key = validateMonthKey(url);
+      if (month_key instanceof Response) return month_key;
+      return handleGetFixedExpenses(env.DB, user_id, month_key);
     }
 
     if (url.pathname === "/api/fixed-expenses" && request.method === "POST") {

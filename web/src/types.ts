@@ -105,6 +105,7 @@ export type SaveResult = SaveResponse | SaveConflict | { error: string };
 export interface FixedExpenseRow {
   fixed_expense_id: string;
   user_id: string;
+  month_key: string;
   name: string;
   icon_key: string;
   amount: number;
