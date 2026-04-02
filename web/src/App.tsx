@@ -393,31 +393,37 @@ function AppInner({
 
   // --- Save handler ---
   const handleSave = useCallback(async () => {
-    if (!data || !ops.isDirty) return;
+    if (!ops.isDirty && !fx.isDirty) return;
     setSaving(true);
     setSaveError(null);
     setConflictMsg(null);
 
-    const version = data.month?.version ?? 0;
-    const result = await saveMonthly(monthKey, version, ops.buildSaveOps());
+    if (ops.isDirty && data) {
+      const version = data.month?.version ?? 0;
+      const result = await saveMonthly(monthKey, version, ops.buildSaveOps());
 
-    if ("conflict" in result) {
-      setConflictMsg(result.message);
-      setSaving(false);
-      return;
-    }
-    if ("error" in result) {
-      setSaveError(result.error);
-      setSaving(false);
-      return;
+      if ("conflict" in result) {
+        setConflictMsg(result.message);
+        setSaving(false);
+        return;
+      }
+      if ("error" in result) {
+        setSaveError(result.error);
+        setSaving(false);
+        return;
+      }
+
+      ops.reset();
+      setModal(null);
+      refetch();
     }
 
-    // Success — clear queue and refetch
-    ops.reset();
-    setModal(null);
+    if (fx.isDirty) {
+      await fx.handleSaveAll();
+    }
+
     setSaving(false);
-    refetch();
-  }, [data, monthKey, ops, refetch]);
+  }, [data, monthKey, ops, refetch, fx]);
 
   // --- Delete month data ---
   const handleDeleteMonth = useCallback(async () => {
@@ -724,13 +730,17 @@ function AppInner({
       )}
 
       {/* Save bar — アーカイブ表示中は非表示 */}
-      {!archive && editable && ops.isDirty && (
+      {!archive && (ops.isDirty || fx.isDirty) && (
         <div className="save-bar">
-          <span>未保存の変更: {ops.pendingCount}件</span>
+          <span>
+            {ops.isDirty
+              ? `未保存の変更: ${ops.pendingCount}件${fx.isDirty ? " + 固定費" : ""}`
+              : "固定費/収入に未保存の変更があります"}
+          </span>
           <button onClick={handleSave} disabled={saving}>
             {saving ? "保存中…" : "保存"}
           </button>
-          <button onClick={ops.reset} disabled={saving}>
+          <button onClick={() => { ops.reset(); fx.resetDrafts(); }} disabled={saving}>
             変更を破棄
           </button>
         </div>

@@ -21,10 +21,14 @@ export interface UseFixedExpensesReturn {
   /** id → 入力中の金額文字列 */
   draftAmounts: Record<string, string>;
   setDraftAmounts: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  /** ドラフトが保存済みと異なるか */
+  isDirty: boolean;
   saving: boolean;
   savedMsg: boolean;
   /** 変更のあるアイテムのみ PATCH して再ロード */
   handleSaveAll: () => Promise<void>;
+  /** ドラフトを保存済み金額に戻す */
+  resetDrafts: () => void;
   /** 固定費/収入を追加 */
   handleAdd: (name: string, iconKey: string, amount: number, entryType?: string) => Promise<string | null>;
   /** 固定費/収入を削除 */
@@ -47,6 +51,12 @@ export function useFixedExpenses(monthKey: string): UseFixedExpensesReturn {
   const expenseItems = useMemo(() => items.filter((i) => i.entry_type !== "income"), [items]);
   const incomeItems = useMemo(() => items.filter((i) => i.entry_type === "income"), [items]);
 
+  const isDirty = useMemo(() => items.some((item) => {
+    const draft = draftAmounts[item.fixed_expense_id] ?? "";
+    const parsed = draft === "" ? 0 : parseInt(draft, 10);
+    return !isNaN(parsed) && parsed !== item.amount;
+  }), [items, draftAmounts]);
+
   const applyItems = useCallback((data: FixedExpenseRow[]) => {
     setItems(data);
     const drafts: Record<string, string> = {};
@@ -55,6 +65,14 @@ export function useFixedExpenses(monthKey: string): UseFixedExpensesReturn {
     }
     setDraftAmounts(drafts);
   }, []);
+
+  const resetDrafts = useCallback(() => {
+    const drafts: Record<string, string> = {};
+    for (const item of items) {
+      drafts[item.fixed_expense_id] = item.amount === 0 ? "" : String(item.amount);
+    }
+    setDraftAmounts(drafts);
+  }, [items]);
 
   const reload = useCallback(async () => {
     const data = await fetchFixedExpenses(monthKey);
@@ -168,9 +186,11 @@ export function useFixedExpenses(monthKey: string): UseFixedExpensesReturn {
     error,
     draftAmounts,
     setDraftAmounts,
+    isDirty,
     saving,
     savedMsg,
     handleSaveAll,
+    resetDrafts,
     handleAdd,
     handleDelete,
     handleUpdateMeta,

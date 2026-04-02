@@ -100,7 +100,7 @@ function calcTotal(items: import("./types").FixedExpenseRow[], draftAmounts: Rec
 }
 
 export function FixedExpensesPanel({ fx, onManageExpense, onManageIncome }: Props) {
-  const { expenseItems, incomeItems, loading, error, draftAmounts, setDraftAmounts, saving, savedMsg, handleSaveAll } = fx;
+  const { expenseItems, incomeItems, loading, error, draftAmounts, setDraftAmounts } = fx;
 
   const expenseTotal = calcTotal(expenseItems, draftAmounts);
   const incomeTotal = calcTotal(incomeItems, draftAmounts);
@@ -154,18 +154,6 @@ export function FixedExpensesPanel({ fx, onManageExpense, onManageIncome }: Prop
         )}
       </div>
 
-      {!loading && (
-        <div className="fixed-panel-actions">
-          <button
-            className="btn-add fixed-panel-save-btn"
-            onClick={() => void handleSaveAll()}
-            disabled={saving}
-          >
-            {saving ? "保存中…" : "保存"}
-          </button>
-          {savedMsg && <span className="fixed-panel-saved">保存しました</span>}
-        </div>
-      )}
     </div>
   );
 }
