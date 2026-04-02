@@ -31,6 +31,12 @@ function fmt(n: number): string {
   return n.toLocaleString("ja-JP");
 }
 
+function fmtCompact(n: number | string): string {
+  const num = typeof n === "string" ? (n === "" ? 0 : parseInt(n, 10)) : n;
+  if (isNaN(num)) return "";
+  return num.toLocaleString("ja-JP");
+}
+
 interface Props {
   fx: UseFixedExpensesReturn;
   /** 「固定費カテゴリ管理」ボタン押下時のコールバック */
@@ -72,19 +78,24 @@ export function FixedExpensesPanel({ fx, onManage }: Props) {
                 <span className="fixed-panel-name" title={item.name}>
                   {item.name}
                 </span>
-                <input
-                  type="number"
-                  min="0"
-                  className="fixed-panel-amount-input"
-                  value={draftAmounts[item.fixed_expense_id] ?? ""}
-                  onChange={(e) =>
-                    setDraftAmounts((prev) => ({
-                      ...prev,
-                      [item.fixed_expense_id]: e.target.value,
-                    }))
-                  }
-                  placeholder="0"
-                />
+                <div className="fixed-panel-amount-wrapper">
+                  <span className="fixed-panel-yen">¥</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    min="0"
+                    className="fixed-panel-amount-input"
+                    value={fmtCompact(draftAmounts[item.fixed_expense_id] ?? "")}
+                    onChange={(e) => {
+                      const v = e.target.value.replace(/,/g, "");
+                      setDraftAmounts((prev) => ({
+                        ...prev,
+                        [item.fixed_expense_id]: v,
+                      }));
+                    }}
+                    placeholder="0"
+                  />
+                </div>
               </li>
             ))}
           </ul>

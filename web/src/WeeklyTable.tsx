@@ -127,9 +127,6 @@ export function WeeklyTable({
     <div className="weekly-view">
       {/* Summary header (same as MonthlyTable) */}
       <div className="month-summary">
-        <span className="summary-item">
-          月支出合計: <strong>¥{fmt(grandTotal)}</strong>
-        </span>
         {monthlyBudget != null && (
           <>
             <span className="summary-item">

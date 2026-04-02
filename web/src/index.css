@@ -118,7 +118,7 @@ body {
   display: flex;
   justify-content: center;
   gap: 0;
-  margin-bottom: 16px;
+  margin-bottom: 6px;
   border-bottom: 2px solid var(--color-border);
 }
 
@@ -1590,14 +1590,37 @@ body {
   font-size: 0.9rem;
 }
 
+.fixed-panel-amount-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.fixed-panel-yen {
+  font-size: 0.85rem;
+  color: var(--color-text);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
 .fixed-panel-amount-input {
-  width: 72px;
+  width: 80px;
   padding: 3px 5px;
-  border: 1px solid var(--color-border);
+  border: none;
   border-radius: 4px;
   font-size: 0.85rem;
-  text-align: right;
+  text-align: left;
   flex-shrink: 0;
+  background: transparent;
+  font-weight: 500;
+}
+
+.fixed-panel-amount-input:focus {
+  outline: none;
+  border: 1px solid var(--color-border);
+  background: #fff;
 }
 
 .fixed-panel-empty {
@@ -1652,15 +1675,17 @@ body {
 }
 
 .table-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 0;
+  padding-bottom: 0;
 }
 
-.table-expense-total {
+.table-summary {
   font-size: 0.9rem;
   color: var(--color-text);
+}
+
+.table-summary strong {
+  font-weight: 600;
 }
 
 

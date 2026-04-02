@@ -100,9 +100,6 @@ export function MonthlyTable({ data, monthKey, localEntries, localDailyBudgets, 
     <div className="monthly-table-wrapper">
       {/* Summary header */}
       <div className="month-summary">
-        <span className="summary-item">
-          月支出合計: <strong>¥{fmt(grandTotal)}</strong>
-        </span>
         {monthlyBudget != null && (
           <>
             <span className="summary-item">

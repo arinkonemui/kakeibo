@@ -612,19 +612,31 @@ function AppInner({
           <FixedExpensesPanel fx={fx} onManage={() => setFeManagerOpen(true)} />
           <div className="table-main-area">
             <div className="table-toolbar">
-              {effectiveData && (() => {
-                const total = localEntries
-                  .filter((e) => e.type === "expense")
-                  .reduce((s, e) => s + e.amount, 0);
-                return (
-                  <span className="table-expense-total">
-                    月支出合計: <strong>¥{total.toLocaleString("ja-JP")}</strong>
-                  </span>
-                );
-              })()}
-              <button className="btn-open-cat" onClick={() => setCatManagerOpen(true)}>
-                ⚙ カテゴリ管理
-              </button>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                {effectiveData && (() => {
+                  const fixedTotal = fx.items.reduce((s, i) => {
+                    const draft = fx.draftAmounts[i.fixed_expense_id] ?? "";
+                    const v = draft === "" ? 0 : parseInt(draft, 10);
+                    return s + (isNaN(v) ? 0 : v);
+                  }, 0);
+                  const expenseTotal = localEntries
+                    .filter((e) => e.type === "expense")
+                    .reduce((s, e) => s + e.amount, 0);
+                  const grandTotal = fixedTotal + expenseTotal;
+                  return (
+                    <span className="table-summary">
+                      固定費: <strong>¥{fixedTotal.toLocaleString("ja-JP")}</strong>
+                      {" / "}
+                      支出: <strong>¥{expenseTotal.toLocaleString("ja-JP")}</strong>
+                      {" / "}
+                      総合計: <strong>¥{grandTotal.toLocaleString("ja-JP")}</strong>
+                    </span>
+                  );
+                })()}
+                <button className="btn-open-cat" onClick={() => setCatManagerOpen(true)}>
+                  ⚙ カテゴリ管理
+                </button>
+              </div>
             </div>
             {effectiveData && activeTab === "monthly" && (
               <MonthlyTable
