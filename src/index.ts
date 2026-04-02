@@ -1,6 +1,12 @@
 import { type AuthEnv, AuthError, getAuthUserId } from "./auth";
 import { handleLogin, handleRegister } from "./authApi";
 import { handleDeleteCategory, handlePatchCategory, handlePostCategory } from "./categories";
+import {
+  handleDeleteFixedExpense,
+  handleGetFixedExpenses,
+  handlePatchFixedExpense,
+  handlePostFixedExpense,
+} from "./fixed-expenses";
 import { handlePostMonthly } from "./save";
 import { handlePostSettings } from "./settings";
 
@@ -176,6 +182,25 @@ export default {
 
     if (url.pathname === "/api/categories" && request.method === "POST") {
       return handlePostCategory(env.DB, user_id, request);
+    }
+
+    if (url.pathname === "/api/fixed-expenses" && request.method === "GET") {
+      return handleGetFixedExpenses(env.DB, user_id);
+    }
+
+    if (url.pathname === "/api/fixed-expenses" && request.method === "POST") {
+      return handlePostFixedExpense(env.DB, user_id, request);
+    }
+
+    const feMatch = url.pathname.match(/^\/api\/fixed-expenses\/([^/]+)$/);
+    if (feMatch) {
+      const feId = feMatch[1]!;
+      if (request.method === "PATCH") {
+        return handlePatchFixedExpense(env.DB, user_id, feId, request);
+      }
+      if (request.method === "DELETE") {
+        return handleDeleteFixedExpense(env.DB, user_id, feId);
+      }
     }
 
     const catMatch = url.pathname.match(/^\/api\/categories\/([^/]+)$/);

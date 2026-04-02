@@ -6,16 +6,18 @@ You MUST follow these rules every time.
 
 ---
 
-## 0. Read these files first (mandatory)
-Before making any changes, always read:
-- docs/SPEC.md
-- docs/RULES.md
-- docs/PLAN.md
-- docs/DB_SCHEMA.md
-- db/schema.sql
-- docs/AGENT_LOG.md (append-only log)
+## 0. Reference files (read on demand)
+Read only when your task requires it — do NOT read all files every session:
 
-If any of these are missing or inconsistent, STOP and fix the docs first.
+| Task type | Read |
+|---|---|
+| New feature / roadmap | docs/PLAN.md |
+| DB change / schema question | docs/DB_SCHEMA.md + db/schema.sql |
+| API / save / cache behavior | docs/RULES.md |
+| UI wording / branding | docs/SPEC.md §8 |
+| Before appending a log entry | docs/AGENT_LOG.md |
+
+If a file is missing or inconsistent, STOP and fix it first.
 
 ---
 

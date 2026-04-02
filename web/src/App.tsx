@@ -6,6 +6,7 @@ import { ConfirmDialog } from "./ConfirmDialog";
 import { downloadCsvWithPicker, generateEntriesCsv } from "./csvUtils";
 import { EntryModal } from "./EntryModal";
 import { ExportTab } from "./ExportTab";
+import { FixedExpensesPanel } from "./FixedExpensesPanel";
 import { isEditableMonth } from "./monthUtils";
 import { LoginScreen } from "./LoginScreen";
 import { MonthlyTable } from "./MonthlyTable";
@@ -544,12 +545,6 @@ function AppInner({
         </button>
       </div>
 
-      <div className="month-selector-sub">
-        <button className="btn-open-cat" onClick={() => setCatManagerOpen(true)}>
-          ⚙ カテゴリ管理
-        </button>
-      </div>
-
       {/* Tab bar */}
       <nav className="tab-bar">
         {TABS.map((tab) => (
@@ -608,26 +603,47 @@ function AppInner({
       {!archive && loading && <p className="status">読み込み中…</p>}
       {!archive && error && <p className="status error">エラー: {error}</p>}
 
-      {effectiveData && activeTab === "monthly" && (
-        <MonthlyTable
-          data={effectiveData}
-          monthKey={effectiveMonthKey}
-          localEntries={localEntries}
-          localDailyBudgets={localDailyBudgets}
-          editable={editable}
-          onCellClick={handleCellClick}
-        />
-      )}
-
-      {effectiveData && activeTab === "weekly" && (
-        <WeeklyTable
-          data={effectiveData}
-          monthKey={effectiveMonthKey}
-          localEntries={localEntries}
-          localDailyBudgets={localDailyBudgets}
-          editable={editable}
-          onCellClick={handleCellClick}
-        />
+      {(activeTab === "monthly" || activeTab === "weekly") && (
+        <div className="table-with-panel">
+          <FixedExpensesPanel onManage={() => setActiveTab("settings")} />
+          <div className="table-main-area">
+            <div className="table-toolbar">
+              {effectiveData && (() => {
+                const total = localEntries
+                  .filter((e) => e.type === "expense")
+                  .reduce((s, e) => s + e.amount, 0);
+                return (
+                  <span className="table-expense-total">
+                    月支出合計: <strong>¥{total.toLocaleString("ja-JP")}</strong>
+                  </span>
+                );
+              })()}
+              <button className="btn-open-cat" onClick={() => setCatManagerOpen(true)}>
+                ⚙ カテゴリ管理
+              </button>
+            </div>
+            {effectiveData && activeTab === "monthly" && (
+              <MonthlyTable
+                data={effectiveData}
+                monthKey={effectiveMonthKey}
+                localEntries={localEntries}
+                localDailyBudgets={localDailyBudgets}
+                editable={editable}
+                onCellClick={handleCellClick}
+              />
+            )}
+            {effectiveData && activeTab === "weekly" && (
+              <WeeklyTable
+                data={effectiveData}
+                monthKey={effectiveMonthKey}
+                localEntries={localEntries}
+                localDailyBudgets={localDailyBudgets}
+                editable={editable}
+                onCellClick={handleCellClick}
+              />
+            )}
+          </div>
+        </div>
       )}
 
       {effectiveData && activeTab === "aggregate" && (

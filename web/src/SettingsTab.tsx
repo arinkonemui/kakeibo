@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { saveBudget } from "./api";
+import { FixedExpensesSection } from "./FixedExpensesSection";
 import type { MonthlyDataset } from "./types";
 
 interface Props {
@@ -152,6 +153,9 @@ export function SettingsTab({
           <p className="budget-saved">月予算を保存しました</p>
         )}
       </section>
+
+      {/* ── 固定費 ── */}
+      <FixedExpensesSection />
 
       {/* ── 日別予算上書き ── */}
       <section className="settings-section">

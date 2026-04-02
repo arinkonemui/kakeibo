@@ -99,3 +99,17 @@ export interface SaveConflict {
 }
 
 export type SaveResult = SaveResponse | SaveConflict | { error: string };
+
+// --- Fixed expenses ---
+
+export interface FixedExpenseRow {
+  fixed_expense_id: string;
+  user_id: string;
+  name: string;
+  icon_key: string;
+  amount: number;
+  is_default: number; // 0 | 1
+  sort_order: number | null;
+  created_at: string;
+  updated_at: string;
+}

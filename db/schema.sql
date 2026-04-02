@@ -79,3 +79,20 @@ CREATE INDEX IF NOT EXISTS idx_categories_user_sort
 
 CREATE INDEX IF NOT EXISTS idx_daily_budgets_user_month
   ON daily_budgets(user_id, month_key);
+
+-- fixed_expenses（ユーザーレベル。month_key なし → 月をまたいで自動引き継ぎ）
+CREATE TABLE IF NOT EXISTS fixed_expenses (
+  fixed_expense_id TEXT PRIMARY KEY,
+  user_id          TEXT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+  name             TEXT NOT NULL,
+  icon_key         TEXT NOT NULL DEFAULT 'custom',
+  amount           INTEGER NOT NULL DEFAULT 0,
+  is_default       INTEGER NOT NULL DEFAULT 0,
+  sort_order       INTEGER,
+  created_at       TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+  updated_at       TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+  UNIQUE (user_id, name)
+);
+
+CREATE INDEX IF NOT EXISTS idx_fixed_expenses_user
+  ON fixed_expenses(user_id);

@@ -1523,3 +1523,211 @@ body {
     padding: 0;
   }
 }
+
+/* ===== 月間・週間タブ：パネル＋テーブルレイアウト ===== */
+.table-with-panel {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+/* 固定費サイドパネル */
+.fixed-panel {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--color-header-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+.fixed-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--color-warm);
+  padding-bottom: 6px;
+}
+
+.fixed-panel-title {
+  font-size: 1rem;
+  font-weight: bold;
+  color: var(--color-primary);
+}
+
+.fixed-panel-loading {
+  font-size: 0.85rem;
+  color: #aaa;
+  padding: 4px 0;
+}
+
+.fixed-panel-list {
+  list-style: none;
+  margin-bottom: 6px;
+}
+
+.fixed-panel-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.9rem;
+}
+
+.fixed-panel-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.fixed-panel-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+
+.fixed-panel-amount {
+  font-size: 0.85rem;
+  color: var(--color-text);
+  white-space: nowrap;
+  text-align: right;
+}
+
+.fixed-panel-total {
+  font-size: 0.85rem;
+  text-align: right;
+  margin-top: 8px;
+  color: #555;
+}
+
+/* テーブルエリア（カテゴリ管理ボタン＋テーブル） */
+.table-main-area {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.table-expense-total {
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+/* ===== 固定費セクション ===== */
+.fixed-expense-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.fixed-expense-card {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: #fff;
+  font-size: 0.9rem;
+  min-width: 0; /* flex overflow 防止 */
+}
+
+.fixed-expense-icon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.fixed-expense-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.9rem;
+  min-width: 0;
+}
+
+.fixed-expense-amount-input {
+  width: 80px;
+  padding: 4px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.fixed-expense-delete {
+  flex-shrink: 0;
+  padding: 2px 6px;
+  font-size: 0.75rem;
+}
+
+.fixed-expense-total {
+  font-size: 0.9rem;
+  color: #555;
+  margin-top: 6px;
+  text-align: right;
+}
+
+.fixed-expense-add-btn {
+  background: #888 !important;
+}
+
+/* 追加フォーム */
+.fixed-expense-add-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-end;
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px dashed var(--color-border);
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+.fixed-expense-add-form label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+  gap: 4px;
+}
+
+.fixed-expense-add-form input,
+.fixed-expense-add-form select {
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.fixed-expense-add-form input[type="number"] {
+  width: 100px;
+}
+
+.fixed-expense-add-actions {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+  padding-bottom: 0;
+}
+
+/* 360px 以下は1カラム */
+@media (max-width: 360px) {
+  .fixed-expense-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

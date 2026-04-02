@@ -159,6 +159,41 @@
 
 ---
 
+## 2.5 fixed_expenses テーブル
+
+ユーザーレベルの固定費（家賃・光熱費等）を管理する。`month_key` を持たないため、月をまたいで自動引き継ぎされる。
+
+| 列 | 型 | 制約 | 説明 |
+|---|---|---|---|
+| fixed_expense_id | TEXT | PK | UUID |
+| user_id | TEXT | NOT NULL, FK→users | ユーザーID |
+| name | TEXT | NOT NULL | 固定費名（例: 家賃） |
+| icon_key | TEXT | NOT NULL DEFAULT 'custom' | アイコン識別子（home/flame/faucet/bulb/phone/custom） |
+| amount | INTEGER | NOT NULL DEFAULT 0 | 金額（円） |
+| is_default | INTEGER | NOT NULL DEFAULT 0 | 1=デフォルト項目（削除不可） |
+| sort_order | INTEGER | | 表示順 |
+| created_at | TEXT | NOT NULL | ISO8601 |
+| updated_at | TEXT | NOT NULL | ISO8601 |
+
+**制約**
+- `UNIQUE(user_id, name)`: 同一ユーザー内で重複名不可。シード時に `INSERT OR IGNORE` で冪等化。
+- `is_default = 1` の行は DELETE API が 403 を返す。
+
+**デフォルト5件（初回 GET 時にシード）**
+
+| name | icon_key |
+|---|---|
+| 家賃 | home |
+| ガス | flame |
+| 水道 | faucet |
+| 電気 | bulb |
+| 通信費 | phone |
+
+#### Indexes
+- `idx_fixed_expenses_user (user_id)`
+
+---
+
 ## 3. 代表クエリ（設計意図確認用）
 
 ### 3.1 月データセット取得（推奨：1回で揃える）

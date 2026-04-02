@@ -1,4 +1,4 @@
-import type { CategoryRow, MonthlyDataset, SaveOps, SaveResult } from "./types";
+import type { CategoryRow, FixedExpenseRow, MonthlyDataset, SaveOps, SaveResult } from "./types";
 
 const DEV_USER_KEY = "osaifu_dev_user_id";
 const TOKEN_KEY = "osaifu_token";
@@ -144,6 +144,65 @@ export async function deleteCategory(
   categoryId: string,
 ): Promise<{ ok: true } | { error: string }> {
   const res = await fetch(`/api/categories/${categoryId}`, {
+    method: "DELETE",
+    headers: buildHeaders(),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { error: (body as { error?: string }).error ?? `HTTP ${res.status}` };
+  }
+  return { ok: true };
+}
+
+// --- Fixed expenses ---
+
+export async function fetchFixedExpenses(): Promise<FixedExpenseRow[]> {
+  const res = await fetch("/api/fixed-expenses", { headers: buildHeaders() });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error((body as { error?: string }).error ?? `HTTP ${res.status}`);
+  }
+  const data = (await res.json()) as { ok: true; items: FixedExpenseRow[] };
+  return data.items;
+}
+
+export async function createFixedExpense(
+  name: string,
+  icon_key: string,
+  amount: number,
+): Promise<{ ok: true; item: FixedExpenseRow } | { error: string }> {
+  const res = await fetch("/api/fixed-expenses", {
+    method: "POST",
+    headers: { ...buildHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ name, icon_key, amount }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { error: (body as { error?: string }).error ?? `HTTP ${res.status}` };
+  }
+  return body as { ok: true; item: FixedExpenseRow };
+}
+
+export async function updateFixedExpense(
+  id: string,
+  patch: { name?: string; icon_key?: string; amount?: number },
+): Promise<{ ok: true; item: FixedExpenseRow } | { error: string }> {
+  const res = await fetch(`/api/fixed-expenses/${id}`, {
+    method: "PATCH",
+    headers: { ...buildHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { error: (body as { error?: string }).error ?? `HTTP ${res.status}` };
+  }
+  return body as { ok: true; item: FixedExpenseRow };
+}
+
+export async function deleteFixedExpense(
+  id: string,
+): Promise<{ ok: true } | { error: string }> {
+  const res = await fetch(`/api/fixed-expenses/${id}`, {
     method: "DELETE",
     headers: buildHeaders(),
   });

@@ -820,3 +820,53 @@ CSV読み込み時の存在チェックを廃止し、「DBへ反映」ボタン
 ### Next Actions
 - Phase 6 残: PDF 出力（A4・2ページ固定）
 - RULES §2.2 LRU キャッシュ（6ヶ月・TTL 120分/24時間）
+
+---
+
+## 2026-04-02T00:00+09:00 — 固定費機能追加
+
+### 目的
+「今月の決まった支出」として家賃・光熱費等の固定費をアイコン＋金額で管理するパネルを予算タブに追加する。
+固定費はユーザーレベルで保存し、月をまたいで自動引き継ぎされる。
+
+### 変更ファイル
+- `db/schema.sql` — `fixed_expenses` テーブル・インデックス追加
+- `docs/DB_SCHEMA.md` — §2.5 fixed_expenses テーブル説明追加
+- `src/fixed-expenses.ts` — 新規作成（GET/POST/PATCH/DELETE ハンドラ）
+- `src/index.ts` — import + /api/fixed-expenses ルート4本追加
+- `web/src/types.ts` — `FixedExpenseRow` インターフェース追加
+- `web/src/api.ts` — `fetchFixedExpenses` / `createFixedExpense` / `updateFixedExpense` / `deleteFixedExpense` 追加
+- `web/src/FixedExpensesSection.tsx` — 新規作成（自己完結型コンポーネント）
+- `web/src/index.css` — 固定費グリッド・カード・追加フォームの CSS 追加
+- `web/src/SettingsTab.tsx` — 月予算セクション直後に `<FixedExpensesSection />` 挿入
+
+### 主要な設計判断
+
+1. **ユーザーレベル保存（month_key なし）**
+   - month_key を持たないため、月をまたいで自動引き継ぎ（仕様の要件を自然に満たす）
+
+2. **初回シードはサーバー側で遅延実行**
+   - GET /api/fixed-expenses で行が 0 件の場合、5件のデフォルトを INSERT OR IGNORE で挿入
+   - UNIQUE(user_id, name) 制約により冪等性を保証
+
+3. **デフォルト項目は削除不可（is_default=1 → DELETE で 403）**
+
+4. **CategoryManager.tsx と同じ「自己完結型」コンポーネントパターン**
+   - SettingsTab に props を追加せず、FixedExpensesSection が自分で fetch・state 管理
+
+5. **2カラムグリッドで「横幅50%」要件を実現**
+   - `grid-template-columns: 1fr 1fr`。360px 以下は1カラムにフォールバック
+
+6. **変更のあるアイテムのみ Promise.all で並列 PATCH**
+   - 保存時に全件送信せず、draftAmounts と server value の差分のみ送信
+
+### 検証方法
+```bash
+npx wrangler d1 execute kakeibo --local --file=db/schema.sql
+npx wrangler dev
+cd web && npm run dev
+npx tsc --noEmit && cd web && npx tsc -b
+```
+
+### Next Actions
+- ユーザー情報編集（PLAN.md §3.7 残タスク）
