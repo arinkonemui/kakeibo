@@ -55,9 +55,11 @@ interface Props {
   onClose: () => void;
   showConfirm: (message: string) => Promise<"ok" | "alt" | "cancel">;
   fx: Pick<UseFixedExpensesReturn, "handleAdd" | "handleDelete" | "handleUpdateMeta">;
+  initialTab?: "expense" | "income";
 }
 
-export function FixedExpensesManager({ items, onClose, showConfirm, fx }: Props) {
+export function FixedExpensesManager({ items, onClose, showConfirm, fx, initialTab }: Props) {
+  const [tab, setTab] = useState<"expense" | "income">(initialTab ?? "expense");
   const [editId, setEditId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editIconKey, setEditIconKey] = useState("custom");
@@ -68,6 +70,18 @@ export function FixedExpensesManager({ items, onClose, showConfirm, fx }: Props)
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const visibleItems = items.filter((i) =>
+    tab === "income" ? i.entry_type === "income" : i.entry_type !== "income"
+  );
+
+  const switchTab = (t: "expense" | "income") => {
+    setTab(t);
+    setEditId(null);
+    setNewName("");
+    setNewIconKey("custom");
+    setError(null);
+  };
+
   // --- Add ---
   const handleAdd = async () => {
     const trimmed = newName.trim();
@@ -77,7 +91,7 @@ export function FixedExpensesManager({ items, onClose, showConfirm, fx }: Props)
     }
     setLoading(true);
     setError(null);
-    const err = await fx.handleAdd(trimmed, newIconKey, 0);
+    const err = await fx.handleAdd(trimmed, newIconKey, 0, tab);
     setLoading(false);
     if (err) {
       setError(err);
@@ -132,13 +146,30 @@ export function FixedExpensesManager({ items, onClose, showConfirm, fx }: Props)
           <button className="modal-close" onClick={onClose}>✕</button>
         </h3>
 
+        <div className="fe-manager-tabs">
+          <button
+            className={`fe-manager-tab${tab === "expense" ? " active" : ""}`}
+            onClick={() => switchTab("expense")}
+          >
+            固定費
+          </button>
+          <button
+            className={`fe-manager-tab${tab === "income" ? " active" : ""}`}
+            onClick={() => switchTab("income")}
+          >
+            収入
+          </button>
+        </div>
+
         {error && <p className="cat-error">{error}</p>}
 
         <ul className="cat-list">
-          {items.length === 0 && (
-            <li style={{ color: "#aaa", fontSize: "0.85rem" }}>固定費がありません</li>
+          {visibleItems.length === 0 && (
+            <li style={{ color: "#aaa", fontSize: "0.85rem" }}>
+              {tab === "income" ? "収入がありません" : "固定費がありません"}
+            </li>
           )}
-          {items.map((item) => (
+          {visibleItems.map((item) => (
             <li key={item.fixed_expense_id} className="cat-item">
               {editId === item.fixed_expense_id ? (
                 <>
@@ -203,7 +234,7 @@ export function FixedExpensesManager({ items, onClose, showConfirm, fx }: Props)
         </ul>
 
         <div className="cat-form">
-          <h4>固定費を追加</h4>
+          <h4>{tab === "income" ? "収入を追加" : "固定費を追加"}</h4>
           <div className="cat-form-row">
             <select
               className="fe-manager-icon-select"

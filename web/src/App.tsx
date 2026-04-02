@@ -70,6 +70,7 @@ function AppInner({
   const [modal, setModal] = useState<ModalState | null>(null);
   const [catManagerOpen, setCatManagerOpen] = useState(false);
   const [feManagerOpen, setFeManagerOpen] = useState(false);
+  const [feManagerInitialTab, setFeManagerInitialTab] = useState<"expense" | "income">("expense");
 
   // Save status
   const [saving, setSaving] = useState(false);
@@ -609,16 +610,22 @@ function AppInner({
 
       {(activeTab === "monthly" || activeTab === "weekly") && (
         <div className="table-with-panel">
-          <FixedExpensesPanel fx={fx} onManage={() => setFeManagerOpen(true)} />
+          <FixedExpensesPanel
+            fx={fx}
+            onManageExpense={() => { setFeManagerInitialTab("expense"); setFeManagerOpen(true); }}
+            onManageIncome={() => { setFeManagerInitialTab("income"); setFeManagerOpen(true); }}
+          />
           <div className="table-main-area">
             <div className="table-toolbar">
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 {effectiveData && (() => {
-                  const fixedTotal = fx.items.reduce((s, i) => {
+                  const calcFx = (items: typeof fx.expenseItems) => items.reduce((s, i) => {
                     const draft = fx.draftAmounts[i.fixed_expense_id] ?? "";
                     const v = draft === "" ? 0 : parseInt(draft, 10);
                     return s + (isNaN(v) ? 0 : v);
                   }, 0);
+                  const fixedTotal = calcFx(fx.expenseItems);
+                  const incomeFixed = calcFx(fx.incomeItems);
                   const expenseTotal = localEntries
                     .filter((e) => e.type === "expense")
                     .reduce((s, e) => s + e.amount, 0);
@@ -626,6 +633,8 @@ function AppInner({
                   return (
                     <span className="table-summary">
                       固定費: <strong>¥{fixedTotal.toLocaleString("ja-JP")}</strong>
+                      {" / "}
+                      収入: <strong>¥{incomeFixed.toLocaleString("ja-JP")}</strong>
                       {" / "}
                       支出: <strong>¥{expenseTotal.toLocaleString("ja-JP")}</strong>
                       {" / "}
@@ -760,6 +769,7 @@ function AppInner({
           onClose={() => setFeManagerOpen(false)}
           showConfirm={showConfirm}
           fx={fx}
+          initialTab={feManagerInitialTab}
         />
       )}
 

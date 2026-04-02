@@ -106,6 +106,7 @@ export interface FixedExpenseRow {
   fixed_expense_id: string;
   user_id: string;
   month_key: string;
+  entry_type: string; // 'expense' | 'income'
   name: string;
   icon_key: string;
   amount: number;

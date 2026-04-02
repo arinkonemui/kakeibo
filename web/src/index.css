@@ -1532,9 +1532,15 @@ body {
 }
 
 /* 固定費サイドパネル */
-.fixed-panel {
+.fixed-panel-container {
   width: 220px;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fixed-panel {
   background: var(--color-header-bg);
   border: 1px solid var(--color-border);
   border-radius: 6px;
@@ -1651,6 +1657,44 @@ body {
 .fixed-panel-saved {
   font-size: 0.8rem;
   color: var(--color-primary);
+}
+
+.fixed-panel-section-divider {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 6px 0;
+}
+
+.fixed-panel-section-title {
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: var(--color-text);
+  margin-bottom: 2px;
+}
+
+/* FixedExpensesManager — タブ */
+.fe-manager-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.fe-manager-tab {
+  flex: 1;
+  padding: 5px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: #fff;
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: var(--color-text);
+}
+
+.fe-manager-tab.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+  font-weight: bold;
 }
 
 /* FixedExpensesManager — アイコン選択 */

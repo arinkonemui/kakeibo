@@ -9,6 +9,8 @@ const VALID_ICON_KEYS = new Set([
   "video", "book", "music", "education", "game", "custom"
 ]);
 
+const VALID_ENTRY_TYPES = new Set(["expense", "income"]);
+
 const DEFAULTS = [
   { name: "家賃",   icon_key: "home",   sort_order: 0 },
   { name: "ガス",   icon_key: "flame",  sort_order: 1 },
@@ -35,6 +37,7 @@ interface FixedExpenseRow {
   fixed_expense_id: string;
   user_id: string;
   month_key: string;
+  entry_type: string;
   name: string;
   icon_key: string;
   amount: number;
@@ -45,7 +48,7 @@ interface FixedExpenseRow {
 }
 
 const SELECT_COLS =
-  "fixed_expense_id, user_id, month_key, name, icon_key, amount, is_default, sort_order, created_at, updated_at";
+  "fixed_expense_id, user_id, month_key, entry_type, name, icon_key, amount, is_default, sort_order, created_at, updated_at";
 
 const ORDER_BY =
   "ORDER BY CASE WHEN sort_order IS NULL THEN 1 ELSE 0 END, sort_order ASC, created_at ASC";
@@ -94,12 +97,13 @@ export async function handleGetFixedExpenses(
     const stmts = prevRows.results.map((r) =>
       db
         .prepare(
-          "INSERT OR IGNORE INTO fixed_expenses (fixed_expense_id, user_id, month_key, name, icon_key, amount, is_default, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "INSERT OR IGNORE INTO fixed_expenses (fixed_expense_id, user_id, month_key, entry_type, name, icon_key, amount, is_default, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(
           crypto.randomUUID(),
           user_id,
           month_key,
+          r.entry_type,
           r.name,
           r.icon_key,
           r.amount,
@@ -111,11 +115,11 @@ export async function handleGetFixedExpenses(
     );
     await db.batch(stmts);
   } else {
-    // 前月もなければデフォルト5件をシード
+    // 前月もなければデフォルト5件をシード（expense のみ、income はデフォルトなし）
     const stmts = DEFAULTS.map((d) =>
       db
         .prepare(
-          "INSERT OR IGNORE INTO fixed_expenses (fixed_expense_id, user_id, month_key, name, icon_key, amount, is_default, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 0, 1, ?, ?, ?)",
+          "INSERT OR IGNORE INTO fixed_expenses (fixed_expense_id, user_id, month_key, entry_type, name, icon_key, amount, is_default, sort_order, created_at, updated_at) VALUES (?, ?, ?, 'expense', ?, ?, 0, 1, ?, ?, ?)",
         )
         .bind(crypto.randomUUID(), user_id, month_key, d.name, d.icon_key, d.sort_order, now, now),
     );
@@ -152,6 +156,9 @@ export async function handlePostFixedExpense(
     return errorResponse(400, "month_key must be YYYY-MM format.");
   }
 
+  const entry_type = typeof b.entry_type === "string" ? b.entry_type : "expense";
+  if (!VALID_ENTRY_TYPES.has(entry_type)) return errorResponse(400, "entry_type must be 'expense' or 'income'.");
+
   const name = typeof b.name === "string" ? b.name.trim() : "";
   if (!name || name.length > 50) return errorResponse(400, "name must be 1–50 characters.");
 
@@ -167,12 +174,12 @@ export async function handlePostFixedExpense(
       : null;
   if (amount === null) return errorResponse(400, "amount must be a non-negative integer.");
 
-  // Determine next sort_order for this month
+  // Determine next sort_order for this month+type
   const maxSortResult = await db
     .prepare(
-      "SELECT MAX(sort_order) as max_sort FROM fixed_expenses WHERE user_id = ? AND month_key = ?",
+      "SELECT MAX(sort_order) as max_sort FROM fixed_expenses WHERE user_id = ? AND month_key = ? AND entry_type = ?",
     )
-    .bind(user_id, month_key)
+    .bind(user_id, month_key, entry_type)
     .first<{ max_sort: number | null }>();
   const nextSort = (maxSortResult?.max_sort ?? -1) + 1;
 
@@ -182,9 +189,9 @@ export async function handlePostFixedExpense(
   try {
     await db
       .prepare(
-        "INSERT INTO fixed_expenses (fixed_expense_id, user_id, month_key, name, icon_key, amount, is_default, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)",
+        "INSERT INTO fixed_expenses (fixed_expense_id, user_id, month_key, entry_type, name, icon_key, amount, is_default, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)",
       )
-      .bind(fixed_expense_id, user_id, month_key, name, icon_key, amount, nextSort, now, now)
+      .bind(fixed_expense_id, user_id, month_key, entry_type, name, icon_key, amount, nextSort, now, now)
       .run();
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);

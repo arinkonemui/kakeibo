@@ -1,9 +1,9 @@
 /**
- * useFixedExpenses — 固定費の状態管理 shared hook
+ * useFixedExpenses — 固定費・収入の状態管理 shared hook
  * monthKey が変わると自動的に再フェッチする。
  * App から月間・週間タブに渡すことで両タブで共有。
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createFixedExpense,
   deleteFixedExpense,
@@ -14,6 +14,8 @@ import type { FixedExpenseRow } from "./types";
 
 export interface UseFixedExpensesReturn {
   items: FixedExpenseRow[];
+  expenseItems: FixedExpenseRow[];
+  incomeItems: FixedExpenseRow[];
   loading: boolean;
   error: string | null;
   /** id → 入力中の金額文字列 */
@@ -23,11 +25,11 @@ export interface UseFixedExpensesReturn {
   savedMsg: boolean;
   /** 変更のあるアイテムのみ PATCH して再ロード */
   handleSaveAll: () => Promise<void>;
-  /** 固定費を追加 */
-  handleAdd: (name: string, iconKey: string, amount: number) => Promise<string | null>;
-  /** 固定費を削除 */
+  /** 固定費/収入を追加 */
+  handleAdd: (name: string, iconKey: string, amount: number, entryType?: string) => Promise<string | null>;
+  /** 固定費/収入を削除 */
   handleDelete: (item: FixedExpenseRow) => Promise<string | null>;
-  /** 固定費名・アイコンを更新 */
+  /** 名前・アイコンを更新 */
   handleUpdateMeta: (id: string, patch: { name?: string; icon_key?: string }) => Promise<string | null>;
   /** 手動再フェッチ */
   reload: () => Promise<void>;
@@ -40,8 +42,10 @@ export function useFixedExpenses(monthKey: string): UseFixedExpensesReturn {
   const [draftAmounts, setDraftAmounts] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState(false);
-  // savedMsg 自動クリア（2秒後）
   const savedMsgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const expenseItems = useMemo(() => items.filter((i) => i.entry_type !== "income"), [items]);
+  const incomeItems = useMemo(() => items.filter((i) => i.entry_type === "income"), [items]);
 
   const applyItems = useCallback((data: FixedExpenseRow[]) => {
     setItems(data);
@@ -109,8 +113,8 @@ export function useFixedExpenses(monthKey: string): UseFixedExpensesReturn {
   }, [items, draftAmounts, reload]);
 
   const handleAdd = useCallback(
-    async (name: string, iconKey: string, amount: number): Promise<string | null> => {
-      const res = await createFixedExpense(monthKey, name, iconKey, amount);
+    async (name: string, iconKey: string, amount: number, entryType = "expense"): Promise<string | null> => {
+      const res = await createFixedExpense(monthKey, name, iconKey, amount, entryType);
       if ("error" in res) return res.error;
       const newItem = res.item;
       setItems((prev) => [...prev, newItem]);
@@ -158,6 +162,8 @@ export function useFixedExpenses(monthKey: string): UseFixedExpensesReturn {
 
   return {
     items,
+    expenseItems,
+    incomeItems,
     loading,
     error,
     draftAmounts,

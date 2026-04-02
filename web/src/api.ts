@@ -173,11 +173,12 @@ export async function createFixedExpense(
   name: string,
   icon_key: string,
   amount: number,
+  entry_type: string = "expense",
 ): Promise<{ ok: true; item: FixedExpenseRow } | { error: string }> {
   const res = await fetch("/api/fixed-expenses", {
     method: "POST",
     headers: { ...buildHeaders(), "Content-Type": "application/json" },
-    body: JSON.stringify({ month_key: monthKey, name, icon_key, amount }),
+    body: JSON.stringify({ month_key: monthKey, entry_type, name, icon_key, amount }),
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
