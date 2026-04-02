@@ -12,7 +12,7 @@ import { isEditableMonth } from "./monthUtils";
 import { LoginScreen } from "./LoginScreen";
 import { MonthlyTable } from "./MonthlyTable";
 import { SettingsTab } from "./SettingsTab";
-import { createFixedExpense } from "./api";
+import { createFixedExpense, fetchFixedExpenses, updateFixedExpense } from "./api";
 import type { FixedExpenseCsvRow } from "./csvUtils";
 import type { CreateEntryOp, EntryRow, MonthlyDataset, UpdateEntryOp } from "./types";
 import { WeeklyTable } from "./WeeklyTable";
@@ -294,12 +294,20 @@ function AppInner({
       return;
     }
 
-    // 固定費・収入を復元
+    // 固定費・収入を復元（既存項目は金額を更新、なければ新規作成）
     if (archive.fixedRows && archive.fixedRows.length > 0) {
+      const existingFixed = await fetchFixedExpenses(archive.monthKey);
+      const existingByKey = new Map(
+        existingFixed.map((i) => [`${i.entry_type}:${i.name}`, i]),
+      );
       for (const row of archive.fixedRows) {
-        await createFixedExpense(archive.monthKey, row.name, row.icon_key, row.amount, row.entry_type);
+        const existing = existingByKey.get(`${row.entry_type}:${row.name}`);
+        if (existing) {
+          await updateFixedExpense(existing.fixed_expense_id, { amount: row.amount });
+        } else {
+          await createFixedExpense(archive.monthKey, row.name, row.icon_key, row.amount, row.entry_type);
+        }
       }
-      // 復元先が現在表示月なら fx を再フェッチ
       if (archive.monthKey === monthKey) {
         await fx.reload();
       }
@@ -593,12 +601,17 @@ function AppInner({
             <button
               className="btn-archive-commit"
               onClick={handleCommitArchive}
-              disabled={archiveCommitting}
+              disabled={archiveCommitting || ops.isDirty || fx.isDirty}
             >
               {archiveCommitting ? "反映中…" : "DBへ反映"}
             </button>
             <button onClick={handleClearArchive}>閉じる</button>
           </div>
+          {(ops.isDirty || fx.isDirty) && (
+            <p className="archive-commit-error">
+              未保存の変更があります。アーカイブを閉じて保存または破棄してから再度お試しください。
+            </p>
+          )}
           {archiveCommitError && (
             <p className="archive-commit-error">{archiveCommitError}</p>
           )}
