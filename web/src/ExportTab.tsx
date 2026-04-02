@@ -3,11 +3,14 @@ import {
   buildArchiveDataset,
   deriveMonthKey,
   downloadCsv,
+  extractFixedRows,
+  filterEntryRows,
   generateEntriesCsv,
   parseEntriesCsv,
 } from "./csvUtils";
+import type { FixedExpenseCsvRow } from "./csvUtils";
 import { PdfPrintLayout } from "./PdfPrintLayout";
-import type { EntryRow, MonthlyDataset } from "./types";
+import type { EntryRow, FixedExpenseRow, MonthlyDataset } from "./types";
 
 interface Props {
   /** 現在アプリで表示中の月（YYYY-MM） */
@@ -18,9 +21,11 @@ interface Props {
   /** アーカイブ表示中か否か（閉じるボタン表示切替） */
   archiveActive: boolean;
   /** アーカイブ読み込み完了コールバック（全月共通） */
-  onLoadArchive: (dataset: MonthlyDataset, archMonthKey: string) => void;
+  onLoadArchive: (dataset: MonthlyDataset, archMonthKey: string, fixedRows?: FixedExpenseCsvRow[]) => void;
   /** アーカイブ表示を終了する */
   onClearArchive: () => void;
+  /** 固定費・収入アイテム一覧（CSV エクスポート用） */
+  fxItems: FixedExpenseRow[];
 }
 
 /** YYYY-MM → YYYY年MM月 */
@@ -36,13 +41,14 @@ export function ExportTab({
   archiveActive,
   onLoadArchive,
   onClearArchive,
+  fxItems,
 }: Props) {
   const [archiveError, setArchiveError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ── CSV ダウンロード ──────────────────────────
+  // ── CSV ダウンロード（明細 + 固定費・収入）──────────
   function handleDownload() {
-    const csv = generateEntriesCsv(localEntries, data.categories);
+    const csv = generateEntriesCsv(localEntries, data.categories, fxItems);
     downloadCsv(csv, `osaifu_${monthKey}_entries.csv`);
   }
 
@@ -56,24 +62,32 @@ export function ExportTab({
     reader.onload = (ev) => {
       try {
         const text = ev.target?.result as string;
-        const rows = parseEntriesCsv(text);
+        const allRows = parseEntriesCsv(text);
 
-        if (rows.length === 0) {
+        if (allRows.length === 0) {
           setArchiveError("データが含まれていません。");
           return;
         }
 
-        const archMonthKey = deriveMonthKey(rows);
+        const fixedRows = extractFixedRows(allRows);
+        const entryRows = filterEntryRows(allRows);
+        const archMonthKey = deriveMonthKey(entryRows);
+
         if (!archMonthKey) {
-          setArchiveError(
-            "CSVの形式が正しくありません（日付列を確認してください）。",
-          );
+          if (fixedRows.length > 0) {
+            setArchiveError(
+              "明細データがないため月が特定できません（固定費・収入のみのCSVは復元できません）。",
+            );
+          } else {
+            setArchiveError(
+              "CSVの形式が正しくありません（日付列を確認してください）。",
+            );
+          }
           return;
         }
 
-        // パースのみ完了 → アーカイブ表示へ（存在チェックは「DBへ反映」押下時）
-        const dataset = buildArchiveDataset(rows, archMonthKey);
-        onLoadArchive(dataset, archMonthKey);
+        const dataset = buildArchiveDataset(entryRows, archMonthKey);
+        onLoadArchive(dataset, archMonthKey, fixedRows.length > 0 ? fixedRows : undefined);
       } catch {
         setArchiveError("CSVの形式が正しくありません。");
       }
@@ -109,8 +123,8 @@ export function ExportTab({
       <section className="export-section">
         <h2 className="export-section-title">CSVダウンロード</h2>
         <p className="export-desc">
-          {monthLabel(monthKey)}の明細（{localEntries.length}件）を CSV
-          ファイルとして保存します。
+          {monthLabel(monthKey)}の明細（{localEntries.length}件）と固定費・収入（{fxItems.length}件）を
+          CSV ファイルとして保存します。
         </p>
         <button className="btn-export-csv" onClick={handleDownload}>
           {monthLabel(monthKey)}のCSVをダウンロード
@@ -125,7 +139,7 @@ export function ExportTab({
           <br />
           読み込み後は月間・週間・集計タブで内容を確認できます（編集不可）。
           <br />
-          バナーの「DBへ反映」ボタンで実際のデータとして保存できます。
+          バナーの「DBへ反映」ボタンで実際のデータとして保存できます。固定費・収入も含まれている場合は同時に復元します。
         </p>
 
         {archiveActive ? (

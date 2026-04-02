@@ -1,4 +1,4 @@
-import type { CategoryRow, EntryRow, MonthlyDataset } from "./types";
+import type { CategoryRow, EntryRow, FixedExpenseRow, MonthlyDataset } from "./types";
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"] as const;
 
@@ -22,10 +22,12 @@ function escapeCsvField(v: string): string {
  * 明細エントリ配列から CSV 文字列を生成する（UTF-8 BOM 付き・CRLF 改行）。
  * 列: 日付,曜日,種別,カテゴリ,金額,メモ,支払方法
  * 並び: 日付 ASC → 同日は金額 DESC
+ * fxItems を渡すと末尾に固定費・収入行を追記する（日付="固定費"、メモ=アイコンキー）。
  */
 export function generateEntriesCsv(
   entries: EntryRow[],
   categories: CategoryRow[],
+  fxItems?: FixedExpenseRow[],
 ): string {
   const catMap = new Map(categories.map((c) => [c.category_id, c.name]));
 
@@ -47,6 +49,22 @@ export function generateEntriesCsv(
     ];
     return fields.map(escapeCsvField).join(",");
   });
+
+  // 固定費・収入行を末尾に追記（日付="固定費" をマーカーとして使用）
+  if (fxItems && fxItems.length > 0) {
+    for (const item of fxItems) {
+      const fields = [
+        "固定費",
+        "",
+        item.entry_type === "income" ? "収入" : "固定費",
+        item.name,
+        String(item.amount),
+        item.icon_key,
+        "",
+      ];
+      rows.push(fields.map(escapeCsvField).join(","));
+    }
+  }
 
   // UTF-8 BOM + CRLF
   return "\uFEFF" + [header, ...rows].join("\r\n") + "\r\n";
@@ -99,6 +117,34 @@ export async function downloadCsvWithPicker(
 // ──────────────────────────────────────────
 // CSV インポート（アーカイブ）
 // ──────────────────────────────────────────
+
+/** 固定費・収入行（CSV 内に埋め込まれる） */
+export interface FixedExpenseCsvRow {
+  entry_type: "expense" | "income";
+  name: string;
+  icon_key: string;
+  amount: number;
+}
+
+/**
+ * ArchiveRow[] から固定費・収入行を抽出する。
+ * 固定費行は date === "固定費" のマーカーで識別する。
+ */
+export function extractFixedRows(rows: ArchiveRow[]): FixedExpenseCsvRow[] {
+  return rows
+    .filter((r) => r.date === "固定費")
+    .map((r) => ({
+      entry_type: r.type === "収入" ? "income" : "expense",
+      name: r.categoryName,
+      icon_key: r.memo || "custom",
+      amount: r.amount,
+    }));
+}
+
+/** 固定費マーカー行を除いた通常エントリ行のみ返す */
+export function filterEntryRows(rows: ArchiveRow[]): ArchiveRow[] {
+  return rows.filter((r) => r.date !== "固定費");
+}
 
 /** パース済みアーカイブ行（表示・変換用） */
 export interface ArchiveRow {

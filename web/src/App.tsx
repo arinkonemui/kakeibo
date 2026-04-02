@@ -12,6 +12,8 @@ import { isEditableMonth } from "./monthUtils";
 import { LoginScreen } from "./LoginScreen";
 import { MonthlyTable } from "./MonthlyTable";
 import { SettingsTab } from "./SettingsTab";
+import { createFixedExpense } from "./api";
+import type { FixedExpenseCsvRow } from "./csvUtils";
 import type { CreateEntryOp, EntryRow, MonthlyDataset, UpdateEntryOp } from "./types";
 import { WeeklyTable } from "./WeeklyTable";
 import { useAuth } from "./useAuth";
@@ -81,6 +83,7 @@ function AppInner({
   const [archive, setArchive] = useState<{
     monthKey: string;
     dataset: MonthlyDataset;
+    fixedRows?: FixedExpenseCsvRow[];
   } | null>(null);
   const [archiveCommitting, setArchiveCommitting] = useState(false);
   const [archiveCommitError, setArchiveCommitError] = useState<string | null>(null);
@@ -134,8 +137,8 @@ function AppInner({
 
   /** アーカイブ読み込み（全月共通）：表示のみ、存在チェックなし */
   const handleLoadArchive = useCallback(
-    (dataset: MonthlyDataset, archMonthKey: string) => {
-      setArchive({ monthKey: archMonthKey, dataset });
+    (dataset: MonthlyDataset, archMonthKey: string, fixedRows?: FixedExpenseCsvRow[]) => {
+      setArchive({ monthKey: archMonthKey, dataset, fixedRows });
       setArchiveCommitError(null);
       setActiveTab("monthly");
     },
@@ -291,6 +294,17 @@ function AppInner({
       return;
     }
 
+    // 固定費・収入を復元
+    if (archive.fixedRows && archive.fixedRows.length > 0) {
+      for (const row of archive.fixedRows) {
+        await createFixedExpense(archive.monthKey, row.name, row.icon_key, row.amount, row.entry_type);
+      }
+      // 復元先が現在表示月なら fx を再フェッチ
+      if (archive.monthKey === monthKey) {
+        await fx.reload();
+      }
+    }
+
     // 成功：反映先月へ移動し通常モードへ
     const targetMonth = archive.monthKey;
     setArchive(null);
@@ -305,7 +319,7 @@ function AppInner({
         `${skipped}件のエントリはカテゴリが一致しないためスキップされました。`,
       );
     }
-  }, [archive, data, ops, refetch]);
+  }, [archive, data, monthKey, ops, refetch, fx]);
 
   /** アーカイブ表示を終了する */
   const handleClearArchive = useCallback(() => {
@@ -713,6 +727,7 @@ function AppInner({
           archiveActive={!!archive}
           onLoadArchive={handleLoadArchive}
           onClearArchive={handleClearArchive}
+          fxItems={fx.items}
         />
       )}
       {activeTab === "export" && !data && (

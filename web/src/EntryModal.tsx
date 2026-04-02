@@ -34,7 +34,7 @@ export function EntryModal({
   const [editEntry, setEditEntry] = useState<EntryRow | null>(null);
 
   // Shared form fields
-  const [entryType, setEntryType] = useState<"expense" | "income">("expense");
+  const entryType = "expense" as const;
   const [amount, setAmount] = useState("");
   const [memo, setMemo] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
@@ -44,7 +44,6 @@ export function EntryModal({
   // Switch to edit mode for a given entry
   const startEdit = (e: EntryRow) => {
     setEditEntry(e);
-    setEntryType(e.type as "expense" | "income");
     setAmount(String(e.amount));
     setMemo(e.memo ?? "");
     setPaymentMethod(e.payment_method ?? "");
@@ -53,7 +52,6 @@ export function EntryModal({
   // Cancel edit → back to 新規追加 mode
   const cancelEdit = () => {
     setEditEntry(null);
-    setEntryType("expense");
     setAmount("");
     setMemo("");
     setPaymentMethod("");
@@ -145,20 +143,6 @@ export function EntryModal({
         <div className="modal-form">
           <h4>{isEditing ? "明細編集" : "新規追加"}</h4>
 
-          <div className="form-row">
-            <label>
-              種別:
-              <select
-                value={entryType}
-                onChange={(e) =>
-                  setEntryType(e.target.value as "expense" | "income")
-                }
-              >
-                <option value="expense">支出</option>
-                <option value="income">収入</option>
-              </select>
-            </label>
-          </div>
           <div className="form-row">
             <label>
               金額:
