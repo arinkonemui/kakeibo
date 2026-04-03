@@ -903,6 +903,25 @@ body {
   margin-bottom: 16px;
 }
 
+/* Fixed expenses / income two-column layout */
+.agg-fx-row {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.agg-fx-block {
+  flex: 1;
+  min-width: 280px;
+}
+
+.agg-fx-subtitle {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin: 0 0 12px 0;
+}
+
 .agg-section-title {
   font-size: 1rem;
   color: var(--color-primary);

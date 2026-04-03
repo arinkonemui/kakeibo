@@ -191,7 +191,7 @@ export function EntryModal({
                   onClick={handleSave}
                   disabled={!amountValid}
                 >
-                  保存
+                  変更
                 </button>
                 <button className="btn-cancel" onClick={cancelEdit}>
                   キャンセル

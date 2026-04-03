@@ -84,6 +84,10 @@ export function PieChart({ slices, size = 220 }: Props) {
   const cx = size / 2;
   const cy = size / 2;
   const r = size / 2 - 4;
+  // Label radius: 62% from center
+  const labelR = r * 0.62;
+  // Minimum angle (degrees) to show a label inside the slice
+  const MIN_LABEL_ANGLE = 18;
 
   // Single slice → full circle
   if (slices.length === 1) {
@@ -96,6 +100,17 @@ export function PieChart({ slices, size = 220 }: Props) {
           className="agg-pie-svg"
         >
           <circle cx={cx} cy={cy} r={r} fill={slices[0]!.color} />
+          <text
+            x={cx}
+            y={cy}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontSize={13}
+            fontWeight="bold"
+            fill="#fff"
+          >
+            100%
+          </text>
         </svg>
       </div>
     );
@@ -103,7 +118,7 @@ export function PieChart({ slices, size = 220 }: Props) {
 
   // Multiple slices
   let cumAngle = 0;
-  const paths = slices.map((slice, i) => {
+  const elements = slices.map((slice, i) => {
     const sliceAngle = (slice.value / total) * 360;
     const startAngle = cumAngle;
     const endAngle = cumAngle + sliceAngle;
@@ -112,19 +127,39 @@ export function PieChart({ slices, size = 220 }: Props) {
     // Skip tiny slices (< 0.5 degree) to avoid rendering artifacts
     if (sliceAngle < 0.5) return null;
 
+    const midAngle = startAngle + sliceAngle / 2;
+    const labelPos = polarToCartesian(cx, cy, labelR, midAngle);
+    const pct = ((slice.value / total) * 100).toFixed(1);
+    const showLabel = sliceAngle >= MIN_LABEL_ANGLE;
+
     return (
-      <path
-        key={i}
-        d={describeArc(cx, cy, r, startAngle, endAngle)}
-        fill={slice.color}
-        stroke="#fff"
-        strokeWidth={1.5}
-        className="agg-pie-slice"
-      >
-        <title>
-          {slice.label}: ¥{slice.value.toLocaleString("ja-JP")}
-        </title>
-      </path>
+      <g key={i}>
+        <path
+          d={describeArc(cx, cy, r, startAngle, endAngle)}
+          fill={slice.color}
+          stroke="#fff"
+          strokeWidth={1.5}
+          className="agg-pie-slice"
+        >
+          <title>
+            {slice.label}: ¥{slice.value.toLocaleString("ja-JP")} ({pct}%)
+          </title>
+        </path>
+        {showLabel && (
+          <text
+            x={labelPos.x}
+            y={labelPos.y}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontSize={11}
+            fontWeight="bold"
+            fill="#fff"
+            style={{ pointerEvents: "none" }}
+          >
+            {pct}%
+          </text>
+        )}
+      </g>
     );
   });
 
@@ -136,7 +171,7 @@ export function PieChart({ slices, size = 220 }: Props) {
         viewBox={`0 0 ${size} ${size}`}
         className="agg-pie-svg"
       >
-        {paths}
+        {elements}
       </svg>
     </div>
   );

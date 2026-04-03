@@ -8,15 +8,22 @@ import {
 } from "./aggregateUtils";
 import { LineChart } from "./charts/LineChart";
 import { PieChart } from "./charts/PieChart";
-import type { EntryRow, MonthlyDataset } from "./types";
+import type { EntryRow, FixedExpenseRow, MonthlyDataset } from "./types";
+
+const FX_PALETTE = [
+  "#e8a838", "#4a9fd4", "#e74c3c", "#2ecc71", "#9b59b6",
+  "#1abc9c", "#f39c12", "#3498db", "#e67e22", "#16a085",
+];
 
 interface Props {
   data: MonthlyDataset;
   monthKey: string;
   localEntries: EntryRow[];
+  fxExpenseItems: FixedExpenseRow[];
+  fxIncomeItems: FixedExpenseRow[];
 }
 
-export function AggregateTab({ data, monthKey, localEntries }: Props) {
+export function AggregateTab({ data, monthKey, localEntries, fxExpenseItems, fxIncomeItems }: Props) {
   const { items: categoryItems, grandTotal } = useMemo(
     () => computeCategoryTotals(localEntries, data.categories),
     [localEntries, data.categories],
@@ -32,13 +39,25 @@ export function AggregateTab({ data, monthKey, localEntries }: Props) {
     [localEntries, data.month],
   );
 
+  // Fixed expense / income totals
+  const fixedExpenseTotal = useMemo(
+    () => fxExpenseItems.reduce((s, i) => s + i.amount, 0),
+    [fxExpenseItems],
+  );
+  const incomeTotal = useMemo(
+    () => fxIncomeItems.reduce((s, i) => s + i.amount, 0),
+    [fxIncomeItems],
+  );
+  const grandExpenseTotal = fixedExpenseTotal + summary.totalExpense;
+  const netBalance = incomeTotal - grandExpenseTotal;
+
   // Default daily budget for the line chart reference line
   const defaultDayBudget = useMemo(() => {
     if (summary.monthlyBudget == null) return null;
     return Math.floor(summary.monthlyBudget / daysInMonth(monthKey));
   }, [summary.monthlyBudget, monthKey]);
 
-  // Pie chart slices
+  // Pie chart slices (category expenses)
   const pieSlices = useMemo(
     () =>
       categoryItems.map((c) => ({
@@ -47,6 +66,32 @@ export function AggregateTab({ data, monthKey, localEntries }: Props) {
         color: c.color,
       })),
     [categoryItems],
+  );
+
+  // Pie chart slices for fixed expenses
+  const fxExpenseSlices = useMemo(
+    () =>
+      fxExpenseItems
+        .filter((i) => i.amount > 0)
+        .map((i, idx) => ({
+          label: i.name,
+          value: i.amount,
+          color: FX_PALETTE[idx % FX_PALETTE.length]!,
+        })),
+    [fxExpenseItems],
+  );
+
+  // Pie chart slices for income
+  const fxIncomeSlices = useMemo(
+    () =>
+      fxIncomeItems
+        .filter((i) => i.amount > 0)
+        .map((i, idx) => ({
+          label: i.name,
+          value: i.amount,
+          color: FX_PALETTE[(idx + 4) % FX_PALETTE.length]!,
+        })),
+    [fxIncomeItems],
   );
 
   // Line chart points
@@ -68,53 +113,134 @@ export function AggregateTab({ data, monthKey, localEntries }: Props) {
         <h3 className="agg-section-title">月の集計サマリー</h3>
         <div className="agg-summary-grid">
           <div className="agg-summary-item">
-            <span className="agg-label">支出合計</span>
+            <span className="agg-label">固定費</span>
+            <span className="agg-value">¥{fmt(fixedExpenseTotal)}</span>
+          </div>
+          <div className="agg-summary-item">
+            <span className="agg-label">支出額</span>
             <span className="agg-value">¥{fmt(summary.totalExpense)}</span>
           </div>
           <div className="agg-summary-item">
-            <span className="agg-label">収入合計</span>
-            <span className="agg-value">¥{fmt(summary.totalIncome)}</span>
+            <span className="agg-label">支出総合計</span>
+            <span className="agg-value">¥{fmt(grandExpenseTotal)}</span>
+          </div>
+          <div className="agg-summary-item">
+            <span className="agg-label">収入額</span>
+            <span className="agg-value">¥{fmt(incomeTotal)}</span>
           </div>
           <div className="agg-summary-item">
             <span className="agg-label">収支差額</span>
             <span
               className="agg-value"
-              style={{
-                color: summary.netBalance < 0 ? "#e74c3c" : "#27ae60",
-              }}
+              style={{ color: netBalance < 0 ? "#e74c3c" : "#27ae60" }}
             >
-              ¥{fmt(summary.netBalance)}
+              ¥{fmt(netBalance)}
             </span>
           </div>
-          {summary.monthlyBudget != null && (
-            <div className="agg-summary-item">
-              <span className="agg-label">予算残</span>
-              <span
-                className="agg-value"
-                style={{
-                  color: summary.budgetRemaining! < 0 ? "#e74c3c" : "#27ae60",
-                }}
-              >
-                ¥{fmt(summary.budgetRemaining!)}
-              </span>
-            </div>
-          )}
           <div className="agg-summary-item">
             <span className="agg-label">支出件数</span>
             <span className="agg-value">{summary.expenseCount}件</span>
           </div>
-          {summary.incomeCount > 0 && (
-            <div className="agg-summary-item">
-              <span className="agg-label">収入件数</span>
-              <span className="agg-value">{summary.incomeCount}件</span>
-            </div>
-          )}
+        </div>
+      </section>
+
+      {/* ── 固定費・収入 内訳 ── */}
+      <section className="agg-section">
+        <h3 className="agg-section-title">固定費・収入 内訳</h3>
+        <div className="agg-fx-row">
+          {/* 固定費 */}
+          <div className="agg-fx-block">
+            <h4 className="agg-fx-subtitle">固定費</h4>
+            {fxExpenseItems.some((i) => i.amount > 0) ? (
+              <div className="agg-category-row">
+                <PieChart slices={fxExpenseSlices} size={180} />
+                <table className="agg-cat-table">
+                  <thead>
+                    <tr>
+                      <th></th>
+                      <th>項目</th>
+                      <th className="agg-num">金額</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {fxExpenseItems
+                      .filter((i) => i.amount > 0)
+                      .map((i, idx) => (
+                        <tr key={i.fixed_expense_id}>
+                          <td>
+                            <span
+                              className="agg-color-swatch"
+                              style={{ background: FX_PALETTE[idx % FX_PALETTE.length] }}
+                            />
+                          </td>
+                          <td>{i.name}</td>
+                          <td className="agg-num">¥{fmt(i.amount)}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td></td>
+                      <td><strong>合計</strong></td>
+                      <td className="agg-num"><strong>¥{fmt(fixedExpenseTotal)}</strong></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            ) : (
+              <p className="empty-message">固定費データがありません</p>
+            )}
+          </div>
+
+          {/* 収入 */}
+          <div className="agg-fx-block">
+            <h4 className="agg-fx-subtitle">収入</h4>
+            {fxIncomeItems.some((i) => i.amount > 0) ? (
+              <div className="agg-category-row">
+                <PieChart slices={fxIncomeSlices} size={180} />
+                <table className="agg-cat-table">
+                  <thead>
+                    <tr>
+                      <th></th>
+                      <th>項目</th>
+                      <th className="agg-num">金額</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {fxIncomeItems
+                      .filter((i) => i.amount > 0)
+                      .map((i, idx) => (
+                        <tr key={i.fixed_expense_id}>
+                          <td>
+                            <span
+                              className="agg-color-swatch"
+                              style={{ background: FX_PALETTE[(idx + 4) % FX_PALETTE.length] }}
+                            />
+                          </td>
+                          <td>{i.name}</td>
+                          <td className="agg-num">¥{fmt(i.amount)}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td></td>
+                      <td><strong>合計</strong></td>
+                      <td className="agg-num"><strong>¥{fmt(incomeTotal)}</strong></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            ) : (
+              <p className="empty-message">収入データがありません</p>
+            )}
+          </div>
         </div>
       </section>
 
       {/* ── カテゴリ別支出 ── */}
       <section className="agg-section">
-        <h3 className="agg-section-title">カテゴリ別支出</h3>
+        <h3 className="agg-section-title">カテゴリ別支出 内訳</h3>
         {grandTotal > 0 ? (
           <div className="agg-category-row">
             <PieChart slices={pieSlices} />

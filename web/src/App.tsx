@@ -724,6 +724,8 @@ function AppInner({
           data={effectiveData}
           monthKey={effectiveMonthKey}
           localEntries={localEntries}
+          fxExpenseItems={fx.expenseItems}
+          fxIncomeItems={fx.incomeItems}
         />
       )}
 
