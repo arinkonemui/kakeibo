@@ -3,6 +3,16 @@ import type { CategoryRow, FixedExpenseRow, MonthlyDataset, SaveOps, SaveResult 
 const DEV_USER_KEY = "osaifu_dev_user_id";
 const TOKEN_KEY = "osaifu_token";
 
+/**
+ * 本番環境ではサブディレクトリ /apps/kakeibo 配下に API が存在する。
+ * VITE_API_PREFIX に値が設定されている場合はそのプレフィックスを付与する。
+ * ローカル開発時は空文字（Vite proxy でそのまま /api/* を転送）。
+ */
+const API_PREFIX = (import.meta.env.VITE_API_PREFIX as string | undefined) ?? "";
+function apiUrl(path: string): string {
+  return `${API_PREFIX}${path}`;
+}
+
 /** Check if running in local dev environment */
 function isLocalDev(): boolean {
   const host = window.location.hostname;
@@ -45,7 +55,7 @@ function buildHeaders(): HeadersInit {
 export async function fetchMonthlyDataset(
   monthKey: string,
 ): Promise<MonthlyDataset> {
-  const res = await fetch(`/api/monthly?month_key=${monthKey}`, {
+  const res = await fetch(apiUrl(`/api/monthly?month_key=${monthKey}`), {
     headers: buildHeaders(),
   });
   if (!res.ok) {
@@ -63,7 +73,7 @@ export async function saveMonthly(
   expectedVersion: number,
   ops: SaveOps,
 ): Promise<SaveResult> {
-  const res = await fetch("/api/monthly", {
+  const res = await fetch(apiUrl("/api/monthly"), {
     method: "POST",
     headers: { ...buildHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -94,7 +104,7 @@ export async function saveBudget(
   monthKey: string,
   monthlyBudget: number | null,
 ): Promise<{ ok: true } | { error: string }> {
-  const res = await fetch("/api/settings", {
+  const res = await fetch(apiUrl("/api/settings"), {
     method: "POST",
     headers: { ...buildHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify({ month_key: monthKey, monthly_budget: monthlyBudget }),
@@ -112,7 +122,7 @@ export async function createCategory(
   name: string,
   kind: string,
 ): Promise<{ ok: true; category: CategoryRow } | { error: string }> {
-  const res = await fetch("/api/categories", {
+  const res = await fetch(apiUrl("/api/categories"), {
     method: "POST",
     headers: { ...buildHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify({ name, kind }),
@@ -128,7 +138,7 @@ export async function updateCategory(
   categoryId: string,
   patch: { name?: string; kind?: string; is_active?: number },
 ): Promise<{ ok: true; category: CategoryRow } | { error: string }> {
-  const res = await fetch(`/api/categories/${categoryId}`, {
+  const res = await fetch(apiUrl(`/api/categories/${categoryId}`), {
     method: "PATCH",
     headers: { ...buildHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify(patch),
@@ -143,7 +153,7 @@ export async function updateCategory(
 export async function deleteCategory(
   categoryId: string,
 ): Promise<{ ok: true } | { error: string }> {
-  const res = await fetch(`/api/categories/${categoryId}`, {
+  const res = await fetch(apiUrl(`/api/categories/${categoryId}`), {
     method: "DELETE",
     headers: buildHeaders(),
   });
@@ -157,7 +167,7 @@ export async function deleteCategory(
 // --- Fixed expenses ---
 
 export async function fetchFixedExpenses(monthKey: string): Promise<FixedExpenseRow[]> {
-  const res = await fetch(`/api/fixed-expenses?month_key=${monthKey}`, {
+  const res = await fetch(apiUrl(`/api/fixed-expenses?month_key=${monthKey}`), {
     headers: buildHeaders(),
   });
   if (!res.ok) {
@@ -175,7 +185,7 @@ export async function createFixedExpense(
   amount: number,
   entry_type: string = "expense",
 ): Promise<{ ok: true; item: FixedExpenseRow } | { error: string }> {
-  const res = await fetch("/api/fixed-expenses", {
+  const res = await fetch(apiUrl("/api/fixed-expenses"), {
     method: "POST",
     headers: { ...buildHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify({ month_key: monthKey, entry_type, name, icon_key, amount }),
@@ -191,7 +201,7 @@ export async function updateFixedExpense(
   id: string,
   patch: { name?: string; icon_key?: string; amount?: number },
 ): Promise<{ ok: true; item: FixedExpenseRow } | { error: string }> {
-  const res = await fetch(`/api/fixed-expenses/${id}`, {
+  const res = await fetch(apiUrl(`/api/fixed-expenses/${id}`), {
     method: "PATCH",
     headers: { ...buildHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify(patch),
@@ -206,7 +216,7 @@ export async function updateFixedExpense(
 export async function deleteFixedExpense(
   id: string,
 ): Promise<{ ok: true } | { error: string }> {
-  const res = await fetch(`/api/fixed-expenses/${id}`, {
+  const res = await fetch(apiUrl(`/api/fixed-expenses/${id}`), {
     method: "DELETE",
     headers: buildHeaders(),
   });
@@ -230,7 +240,7 @@ export async function authRegister(
   password: string,
   username?: string,
 ): Promise<AuthResponse | { error: string }> {
-  const res = await fetch("/api/auth/register", {
+  const res = await fetch(apiUrl("/api/auth/register"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password, username }),
@@ -246,7 +256,7 @@ export async function authLogin(
   email: string,
   password: string,
 ): Promise<AuthResponse | { error: string }> {
-  const res = await fetch("/api/auth/login", {
+  const res = await fetch(apiUrl("/api/auth/login"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
@@ -264,7 +274,7 @@ export async function updateProfile(patch: {
   currentPassword?: string;
   newPassword?: string;
 }): Promise<{ ok: true; displayName: string } | { error: string }> {
-  const res = await fetch("/api/auth/profile", {
+  const res = await fetch(apiUrl("/api/auth/profile"), {
     method: "PATCH",
     headers: { ...buildHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify(patch),
@@ -279,7 +289,7 @@ export async function updateProfile(patch: {
 export async function requestPasswordReset(
   email: string,
 ): Promise<{ ok: true } | { error: string }> {
-  const res = await fetch("/api/auth/reset-request", {
+  const res = await fetch(apiUrl("/api/auth/reset-request"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email }),
@@ -295,7 +305,7 @@ export async function resetPassword(
   token: string,
   newPassword: string,
 ): Promise<{ ok: true } | { error: string }> {
-  const res = await fetch("/api/auth/reset-password", {
+  const res = await fetch(apiUrl("/api/auth/reset-password"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ token, newPassword }),

@@ -12,6 +12,8 @@ import { handlePostSettings } from "./settings";
 
 export interface Env extends AuthEnv {
   DB: D1Database;
+  /** 本番環境でのサブディレクトリプレフィックス（例: /apps/kakeibo） */
+  BASE_PATH?: string;
 }
 
 // --- Types ---
@@ -143,17 +145,23 @@ async function handleGetMonthly(
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+    // サブディレクトリプレフィックスをストリップ（本番: /apps/kakeibo/api/* → /api/*）
+    const basePath = env.BASE_PATH ?? "";
+    const pathname =
+      basePath && url.pathname.startsWith(basePath)
+        ? url.pathname.slice(basePath.length) || "/"
+        : url.pathname;
 
     // --- Public auth endpoints (no token required) ---
-    if (url.pathname === "/api/auth/register" && request.method === "POST") {
+    if (pathname === "/api/auth/register" && request.method === "POST") {
       if (!env.AUTH_SECRET) return errorResponse(500, "Internal Server Error");
       return handleRegister(env.DB, env.AUTH_SECRET, request);
     }
-    if (url.pathname === "/api/auth/login" && request.method === "POST") {
+    if (pathname === "/api/auth/login" && request.method === "POST") {
       if (!env.AUTH_SECRET) return errorResponse(500, "Internal Server Error");
       return handleLogin(env.DB, env.AUTH_SECRET, request);
     }
-    if (url.pathname === "/api/auth/reset-request" && request.method === "POST") {
+    if (pathname === "/api/auth/reset-request" && request.method === "POST") {
       return handleResetRequest(env.DB, request);
     }
     if (url.pathname === "/api/auth/reset-password" && request.method === "POST") {
@@ -172,39 +180,39 @@ export default {
     }
 
     // --- Routing ---
-    if (url.pathname === "/api/auth/profile" && request.method === "PATCH") {
+    if (pathname === "/api/auth/profile" && request.method === "PATCH") {
       return handlePatchProfile(env.DB, user_id, request);
     }
 
-    if (url.pathname === "/api/monthly" && request.method === "GET") {
+    if (pathname === "/api/monthly" && request.method === "GET") {
       const month_key = validateMonthKey(url);
       if (month_key instanceof Response) return month_key;
       return handleGetMonthly(env.DB, user_id, month_key);
     }
 
-    if (url.pathname === "/api/monthly" && request.method === "POST") {
+    if (pathname === "/api/monthly" && request.method === "POST") {
       return handlePostMonthly(env.DB, user_id, request);
     }
 
-    if (url.pathname === "/api/settings" && request.method === "POST") {
+    if (pathname === "/api/settings" && request.method === "POST") {
       return handlePostSettings(env.DB, user_id, request);
     }
 
-    if (url.pathname === "/api/categories" && request.method === "POST") {
+    if (pathname === "/api/categories" && request.method === "POST") {
       return handlePostCategory(env.DB, user_id, request);
     }
 
-    if (url.pathname === "/api/fixed-expenses" && request.method === "GET") {
+    if (pathname === "/api/fixed-expenses" && request.method === "GET") {
       const month_key = validateMonthKey(url);
       if (month_key instanceof Response) return month_key;
       return handleGetFixedExpenses(env.DB, user_id, month_key);
     }
 
-    if (url.pathname === "/api/fixed-expenses" && request.method === "POST") {
+    if (pathname === "/api/fixed-expenses" && request.method === "POST") {
       return handlePostFixedExpense(env.DB, user_id, request);
     }
 
-    const feMatch = url.pathname.match(/^\/api\/fixed-expenses\/([^/]+)$/);
+    const feMatch = pathname.match(/^\/api\/fixed-expenses\/([^/]+)$/);
     if (feMatch) {
       const feId = feMatch[1]!;
       if (request.method === "PATCH") {
@@ -215,7 +223,7 @@ export default {
       }
     }
 
-    const catMatch = url.pathname.match(/^\/api\/categories\/([^/]+)$/);
+    const catMatch = pathname.match(/^\/api\/categories\/([^/]+)$/);
     if (catMatch) {
       const categoryId = catMatch[1]!;
       if (request.method === "PATCH") {
