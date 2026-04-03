@@ -68,6 +68,22 @@ export function AggregateTab({ data, monthKey, localEntries, fxExpenseItems, fxI
     [categoryItems],
   );
 
+  // Combined slices: fixed expenses + category expenses (base = incomeTotal)
+  const incomeBreakdownItems = useMemo(() => {
+    const items: { label: string; value: number; color: string }[] = [];
+    fxExpenseItems
+      .filter((i) => i.amount > 0)
+      .forEach((i, idx) => {
+        items.push({ label: i.name, value: i.amount, color: FX_PALETTE[idx % FX_PALETTE.length]! });
+      });
+    categoryItems
+      .filter((c) => c.total > 0)
+      .forEach((c) => {
+        items.push({ label: c.name, value: c.total, color: c.color });
+      });
+    return items;
+  }, [fxExpenseItems, categoryItems]);
+
   // Pie chart slices for fixed expenses
   const fxExpenseSlices = useMemo(
     () =>
@@ -143,6 +159,71 @@ export function AggregateTab({ data, monthKey, localEntries, fxExpenseItems, fxI
           </div>
         </div>
       </section>
+
+      {/* ── 収入に対する支出内訳 ── */}
+      {incomeTotal > 0 && incomeBreakdownItems.length > 0 && (
+        <section className="agg-section">
+          <h3 className="agg-section-title">収入に対する支出 内訳</h3>
+          <div className="agg-category-row">
+            <PieChart slices={incomeBreakdownItems} />
+            <div className="agg-cat-table-wrapper">
+              <table className="agg-cat-table">
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th>カテゴリ</th>
+                    <th className="agg-num">金額</th>
+                    <th className="agg-num">割合</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {incomeBreakdownItems.map((item, idx) => (
+                    <tr key={idx}>
+                      <td>
+                        <span
+                          className="agg-color-swatch"
+                          style={{ background: item.color }}
+                        />
+                      </td>
+                      <td>{item.label}</td>
+                      <td className="agg-num">¥{fmt(item.value)}</td>
+                      <td className="agg-num">
+                        {((item.value / incomeTotal) * 100).toFixed(1)}%
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td></td>
+                    <td><strong>支出総合計</strong></td>
+                    <td className="agg-num"><strong>¥{fmt(grandExpenseTotal)}</strong></td>
+                    <td className="agg-num">
+                      <strong>{((grandExpenseTotal / incomeTotal) * 100).toFixed(1)}%</strong>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td></td>
+                    <td><strong>収支差額</strong></td>
+                    <td
+                      className="agg-num"
+                      style={{ color: netBalance < 0 ? "#e74c3c" : "#27ae60" }}
+                    >
+                      <strong>¥{fmt(netBalance)}</strong>
+                    </td>
+                    <td
+                      className="agg-num"
+                      style={{ color: netBalance < 0 ? "#e74c3c" : "#27ae60" }}
+                    >
+                      <strong>{((netBalance / incomeTotal) * 100).toFixed(1)}%</strong>
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── 固定費・収入 内訳 ── */}
       <section className="agg-section">
