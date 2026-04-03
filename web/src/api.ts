@@ -286,6 +286,21 @@ export async function updateProfile(patch: {
   return body as { ok: true; displayName: string };
 }
 
+export async function deleteAccount(
+  currentPassword: string,
+): Promise<{ ok: true } | { error: string }> {
+  const res = await fetch(apiUrl("/api/auth/account"), {
+    method: "DELETE",
+    headers: { ...buildHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ currentPassword }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { error: (body as { error?: string }).error ?? `HTTP ${res.status}` };
+  }
+  return { ok: true };
+}
+
 export async function requestPasswordReset(
   email: string,
 ): Promise<{ ok: true } | { error: string }> {

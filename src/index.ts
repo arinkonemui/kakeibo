@@ -1,5 +1,5 @@
 import { type AuthEnv, AuthError, getAuthUserId } from "./auth";
-import { handleLogin, handlePatchProfile, handleRegister, handleResetRequest, handleResetPassword } from "./authApi";
+import { handleDeleteAccount, handleLogin, handlePatchProfile, handleRegister, handleResetRequest, handleResetPassword } from "./authApi";
 import { handleDeleteCategory, handlePatchCategory, handlePostCategory } from "./categories";
 import {
   handleDeleteFixedExpense,
@@ -186,6 +186,29 @@ export default {
       return handleResetPassword(env.DB, request);
     }
 
+    // DEBUG: auth状態確認（ローカル開発用、削除予定）
+    if (pathname === "/api/auth/debug-token") {
+      const authHeader = request.headers.get("Authorization") ?? "(none)";
+      const hasSecret = !!env.AUTH_SECRET;
+      const devMode = env.DEV_MODE ?? "(undefined)";
+      let verifyResult = "not tried";
+      if (authHeader.startsWith("Bearer ") && env.AUTH_SECRET) {
+        try {
+          const { getAuthUserId: _auth } = await import("./auth");
+          const uid = await _auth(request, env);
+          verifyResult = `OK: ${uid}`;
+        } catch (e) {
+          verifyResult = `FAIL: ${e instanceof Error ? e.message : String(e)}`;
+        }
+      }
+      return new Response(JSON.stringify({
+        authHeader: authHeader.substring(0, 30) + "...",
+        hasSecret,
+        devMode,
+        verifyResult,
+      }, null, 2), { headers: { "Content-Type": "application/json" } });
+    }
+
     // --- Auth: derive user_id from request ---
     let user_id: string;
     try {
@@ -200,6 +223,9 @@ export default {
     // --- Routing ---
     if (pathname === "/api/auth/profile" && request.method === "PATCH") {
       return handlePatchProfile(env.DB, user_id, request);
+    }
+    if (pathname === "/api/auth/account" && request.method === "DELETE") {
+      return handleDeleteAccount(env.DB, user_id, request);
     }
 
     if (pathname === "/api/monthly" && request.method === "GET") {

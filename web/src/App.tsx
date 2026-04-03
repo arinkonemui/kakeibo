@@ -864,6 +864,7 @@ function AppInner({
             onUpdateDisplayName(name);
             setProfileOpen(false);
           }}
+          onLogout={onLogout}
         />
       )}
     </div>

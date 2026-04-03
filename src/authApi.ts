@@ -297,6 +297,46 @@ export async function handlePatchProfile(
   return json({ ok: true, displayName });
 }
 
+/** DELETE /api/auth/account — ユーザーアカウント物理削除 */
+export async function handleDeleteAccount(
+  db: D1Database,
+  userId: string,
+  request: Request,
+): Promise<Response> {
+  let body: { currentPassword?: unknown };
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: "Invalid JSON" }, 400);
+  }
+
+  const curPw = typeof body.currentPassword === "string" ? body.currentPassword : "";
+  if (!curPw) {
+    return json({ error: "パスワードを入力してください" }, 400);
+  }
+
+  const user = await db
+    .prepare("SELECT password_hash FROM users WHERE user_id = ?")
+    .bind(userId)
+    .first<{ password_hash: string }>();
+  if (!user) return json({ error: "ユーザーが見つかりません" }, 404);
+
+  if (!(await verifyPassword(curPw, user.password_hash))) {
+    return json({ error: "パスワードが正しくありません" }, 401);
+  }
+
+  // 子テーブルから順に物理削除（FK 依存順）
+  await db.prepare("DELETE FROM password_reset_tokens WHERE user_id = ?").bind(userId).run();
+  await db.prepare("DELETE FROM entries WHERE user_id = ?").bind(userId).run();
+  await db.prepare("DELETE FROM daily_budgets WHERE user_id = ?").bind(userId).run();
+  await db.prepare("DELETE FROM fixed_expenses WHERE user_id = ?").bind(userId).run();
+  await db.prepare("DELETE FROM categories WHERE user_id = ?").bind(userId).run();
+  await db.prepare("DELETE FROM months WHERE user_id = ?").bind(userId).run();
+  await db.prepare("DELETE FROM users WHERE user_id = ?").bind(userId).run();
+
+  return json({ ok: true });
+}
+
 /** POST /api/auth/login */
 export async function handleLogin(
   db: D1Database,

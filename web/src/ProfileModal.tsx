@@ -1,14 +1,15 @@
 import { useState } from "react";
-import { updateProfile } from "./api";
+import { deleteAccount, updateProfile } from "./api";
 import { PasswordResetModal } from "./PasswordResetModal";
 
 interface Props {
   displayName: string | null;
   onClose: () => void;
   onUpdated: (newDisplayName: string) => void;
+  onLogout: () => void;
 }
 
-export function ProfileModal({ displayName, onClose, onUpdated }: Props) {
+export function ProfileModal({ displayName, onClose, onUpdated, onLogout }: Props) {
   // ── ユーザー名 ──
   const [username, setUsername] = useState(displayName ?? "");
   const [usernameMsg, setUsernameMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -27,6 +28,12 @@ export function ProfileModal({ displayName, onClose, onUpdated }: Props) {
   const [pwMsg, setPwMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pwLoading, setPwLoading] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
+
+  // ── アカウント削除 ──
+  const [deletePw, setDeletePw] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleteMsg, setDeleteMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // ── ユーザー名変更 ──
   async function handleUsernameSubmit(e: React.FormEvent) {
@@ -83,6 +90,31 @@ export function ProfileModal({ displayName, onClose, onUpdated }: Props) {
       setCurPw("");
       setNewPw("");
       setNewPw2("");
+    }
+  }
+
+  // ── アカウント削除 ──
+  async function handleDeleteAccount(e: React.FormEvent) {
+    e.preventDefault();
+    setDeleteMsg(null);
+    if (!deletePw) {
+      setDeleteMsg({ ok: false, text: "パスワードを入力してください" });
+      return;
+    }
+    if (!deleteConfirm) {
+      setDeleteMsg({ ok: false, text: "確認チェックを入れてください" });
+      return;
+    }
+    setDeleteLoading(true);
+    const res = await deleteAccount(deletePw);
+    setDeleteLoading(false);
+    if ("error" in res) {
+      setDeleteMsg({ ok: false, text: res.error });
+    } else {
+      localStorage.removeItem("token");
+      localStorage.removeItem("userId");
+      localStorage.removeItem("displayName");
+      onLogout();
     }
   }
 
@@ -230,6 +262,55 @@ export function ProfileModal({ displayName, onClose, onUpdated }: Props) {
               <div className="form-actions">
                 <button className="btn-add" type="submit" disabled={pwLoading}>
                   {pwLoading ? "変更中..." : "変更"}
+                </button>
+              </div>
+            </form>
+          </section>
+
+          {/* ── アカウント削除 ── */}
+          <section className="profile-section profile-section-danger">
+            <h4 className="profile-section-title" style={{ color: "#c0392b" }}>アカウント削除</h4>
+            <p style={{ fontSize: "0.85rem", color: "#666", margin: "0 0 0.8rem" }}>
+              アカウントを削除すると、すべてのデータ（家計簿・カテゴリ・設定）が完全に削除され、復元できません。
+            </p>
+            <form onSubmit={handleDeleteAccount}>
+              <div className="form-row">
+                <label>
+                  現在のパスワード:
+                  <input
+                    type="password"
+                    value={deletePw}
+                    onChange={(e) => setDeletePw(e.target.value)}
+                    disabled={deleteLoading}
+                    required
+                    autoComplete="current-password"
+                  />
+                </label>
+              </div>
+              <div className="form-row">
+                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem" }}>
+                  <input
+                    type="checkbox"
+                    checked={deleteConfirm}
+                    onChange={(e) => setDeleteConfirm(e.target.checked)}
+                    disabled={deleteLoading}
+                  />
+                  すべてのデータが削除されることを理解しました
+                </label>
+              </div>
+              {deleteMsg && (
+                <p className={deleteMsg.ok ? "profile-msg-ok" : "profile-msg-err"}>
+                  {deleteMsg.text}
+                </p>
+              )}
+              <div className="form-actions">
+                <button
+                  className="btn-add"
+                  type="submit"
+                  disabled={deleteLoading || !deleteConfirm}
+                  style={{ backgroundColor: "#c0392b", borderColor: "#c0392b" }}
+                >
+                  {deleteLoading ? "削除中..." : "アカウントを削除"}
                 </button>
               </div>
             </form>
