@@ -1,5 +1,5 @@
 import { type AuthEnv, AuthError, getAuthUserId } from "./auth";
-import { handleLogin, handleRegister } from "./authApi";
+import { handleLogin, handlePatchProfile, handleRegister } from "./authApi";
 import { handleDeleteCategory, handlePatchCategory, handlePostCategory } from "./categories";
 import {
   handleDeleteFixedExpense,
@@ -166,6 +166,10 @@ export default {
     }
 
     // --- Routing ---
+    if (url.pathname === "/api/auth/profile" && request.method === "PATCH") {
+      return handlePatchProfile(env.DB, user_id, request);
+    }
+
     if (url.pathname === "/api/monthly" && request.method === "GET") {
       const month_key = validateMonthKey(url);
       if (month_key instanceof Response) return month_key;

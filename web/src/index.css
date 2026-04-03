@@ -867,6 +867,28 @@ body {
   color: #666;
 }
 
+.btn-gear-fixed {
+  position: fixed;
+  top: 14px;
+  right: 16px;
+  z-index: 200;
+  font-size: 1.7rem;
+  line-height: 1;
+  padding: 6px 8px;
+  background: var(--color-paper);
+  border: 1.5px solid #ddd;
+  border-radius: 50%;
+  color: #666;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  transition: color 0.15s, transform 0.3s, box-shadow 0.15s;
+}
+.btn-gear-fixed:hover {
+  color: var(--color-primary);
+  transform: rotate(45deg);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.18);
+}
+
 .btn-logout {
   font-size: 0.82rem;
   padding: 4px 10px;
@@ -880,6 +902,40 @@ body {
 
 .btn-logout:hover {
   background: #f0f0f0;
+}
+
+/* --- Profile Modal --- */
+.profile-modal {
+  max-width: 420px;
+  width: 100%;
+}
+.profile-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.profile-section {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.profile-section:last-child {
+  border-bottom: none;
+}
+.profile-section-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin: 0 0 10px 0;
+}
+.profile-msg-ok {
+  font-size: 0.85rem;
+  color: #27ae60;
+  margin: 6px 0 0 0;
+}
+.profile-msg-err {
+  font-size: 0.85rem;
+  color: #e74c3c;
+  margin: 6px 0 0 0;
 }
 
 /* --- Aggregate Tab --- */

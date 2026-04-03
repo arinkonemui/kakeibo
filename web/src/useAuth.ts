@@ -25,6 +25,11 @@ export function useAuth() {
     setAuth({ token, userId, displayName });
   }
 
+  function updateDisplayName(displayName: string) {
+    localStorage.setItem(DISPLAY_NAME_KEY, displayName);
+    setAuth((prev) => ({ ...prev, displayName }));
+  }
+
   function logout() {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_ID_KEY);
@@ -33,5 +38,5 @@ export function useAuth() {
     setAuth({ token: null, userId: null, displayName: null });
   }
 
-  return { ...auth, login, logout };
+  return { ...auth, login, logout, updateDisplayName };
 }

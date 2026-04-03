@@ -257,3 +257,21 @@ export async function authLogin(
   }
   return body as AuthResponse;
 }
+
+export async function updateProfile(patch: {
+  username?: string;
+  email?: string;
+  currentPassword?: string;
+  newPassword?: string;
+}): Promise<{ ok: true; displayName: string } | { error: string }> {
+  const res = await fetch("/api/auth/profile", {
+    method: "PATCH",
+    headers: { ...buildHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { error: (body as { error?: string }).error ?? `HTTP ${res.status}` };
+  }
+  return body as { ok: true; displayName: string };
+}

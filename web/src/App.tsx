@@ -11,6 +11,7 @@ import { FixedExpensesPanel } from "./FixedExpensesPanel";
 import { isEditableMonth } from "./monthUtils";
 import { LoginScreen } from "./LoginScreen";
 import { MonthlyTable } from "./MonthlyTable";
+import { ProfileModal } from "./ProfileModal";
 import { SettingsTab } from "./SettingsTab";
 import { createFixedExpense, fetchFixedExpenses, updateFixedExpense } from "./api";
 import type { FixedExpenseCsvRow } from "./csvUtils";
@@ -43,22 +44,24 @@ interface ModalState {
 }
 
 export function App() {
-  const { token, userId, displayName, login, logout } = useAuth();
+  const { token, userId, displayName, login, logout, updateDisplayName } = useAuth();
 
   // Show login screen when not authenticated
   if (!token || !userId) {
     return <LoginScreen onLogin={login} />;
   }
 
-  return <AppInner displayName={displayName} onLogout={logout} />;
+  return <AppInner displayName={displayName} onLogout={logout} onUpdateDisplayName={updateDisplayName} />;
 }
 
 function AppInner({
   displayName,
   onLogout,
+  onUpdateDisplayName,
 }: {
   displayName: string | null;
   onLogout: () => void;
+  onUpdateDisplayName: (name: string) => void;
 }) {
   const [monthKey, setMonthKey] = useState(currentMonthKey);
   const { data, loading, error, refetch } = useMonthly(monthKey);
@@ -73,6 +76,9 @@ function AppInner({
   const [catManagerOpen, setCatManagerOpen] = useState(false);
   const [feManagerOpen, setFeManagerOpen] = useState(false);
   const [feManagerInitialTab, setFeManagerInitialTab] = useState<"expense" | "income">("expense");
+
+  // Profile modal
+  const [profileOpen, setProfileOpen] = useState(false);
 
   // Save status
   const [saving, setSaving] = useState(false);
@@ -557,6 +563,16 @@ function AppInner({
             </button>
           </div>
         )}
+
+        {/* 固定位置の歯車ボタン */}
+        <button
+          className="btn-gear-fixed"
+          onClick={() => setProfileOpen(true)}
+          title="アカウント設定"
+          aria-label="アカウント設定"
+        >
+          ⚙
+        </button>
       </header>
 
       <div className="month-selector">
@@ -837,6 +853,17 @@ function AppInner({
           okLabel={confirmState.opts?.okLabel}
           cancelLabel={confirmState.opts?.cancelLabel}
           altLabel={confirmState.opts?.altLabel}
+        />
+      )}
+
+      {profileOpen && (
+        <ProfileModal
+          displayName={displayName}
+          onClose={() => setProfileOpen(false)}
+          onUpdated={(name) => {
+            onUpdateDisplayName(name);
+            setProfileOpen(false);
+          }}
         />
       )}
     </div>
