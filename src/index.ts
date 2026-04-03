@@ -14,6 +14,8 @@ export interface Env extends AuthEnv {
   DB: D1Database;
   /** 本番環境でのサブディレクトリプレフィックス（例: /apps/kakeibo） */
   BASE_PATH?: string;
+  /** 静的アセット配信バインディング（[assets] 設定時に自動付与） */
+  ASSETS?: { fetch(req: Request): Promise<Response> };
 }
 
 // --- Types ---
@@ -152,6 +154,24 @@ export default {
         ? url.pathname.slice(basePath.length) || "/"
         : url.pathname;
 
+    // --- 非APIリクエスト → React 静的ファイルを配信（SPA フォールバック付き）---
+    if (!pathname.startsWith("/api/")) {
+      if (env.ASSETS) {
+        // ルートは index.html へ
+        const filePath = pathname === "/" ? "/index.html" : pathname;
+        const assetUrl = new URL(request.url);
+        assetUrl.pathname = filePath;
+        const assetRes = await env.ASSETS.fetch(new Request(assetUrl.toString(), request));
+        // ファイルが見つからない場合は SPA の index.html を返す
+        if (assetRes.status === 404) {
+          assetUrl.pathname = "/index.html";
+          return env.ASSETS.fetch(new Request(assetUrl.toString(), request));
+        }
+        return assetRes;
+      }
+      return errorResponse(404, "Not found.");
+    }
+
     // --- Public auth endpoints (no token required) ---
     if (pathname === "/api/auth/register" && request.method === "POST") {
       if (!env.AUTH_SECRET) return errorResponse(500, "Internal Server Error");
@@ -164,7 +184,7 @@ export default {
     if (pathname === "/api/auth/reset-request" && request.method === "POST") {
       return handleResetRequest(env.DB, request);
     }
-    if (url.pathname === "/api/auth/reset-password" && request.method === "POST") {
+    if (pathname === "/api/auth/reset-password" && request.method === "POST") {
       return handleResetPassword(env.DB, request);
     }
 
