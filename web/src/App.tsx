@@ -682,11 +682,11 @@ function AppInner({
                     <span className="table-summary">
                       固定費: <strong>¥{fixedTotal.toLocaleString("ja-JP")}</strong>
                       {" / "}
-                      収入: <strong>¥{incomeFixed.toLocaleString("ja-JP")}</strong>
-                      {" / "}
                       支出: <strong>¥{expenseTotal.toLocaleString("ja-JP")}</strong>
                       {" / "}
-                      総合計: <strong>¥{grandTotal.toLocaleString("ja-JP")}</strong>
+                      総支出額: <strong>¥{grandTotal.toLocaleString("ja-JP")}</strong>
+                      <span style={{ display: "inline-block", width: "2em" }} />
+                      総収入額: <strong>¥{incomeFixed.toLocaleString("ja-JP")}</strong>
                     </span>
                   );
                 })()}
