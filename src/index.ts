@@ -1,5 +1,5 @@
 import { type AuthEnv, AuthError, getAuthUserId } from "./auth";
-import { handleLogin, handlePatchProfile, handleRegister } from "./authApi";
+import { handleLogin, handlePatchProfile, handleRegister, handleResetRequest, handleResetPassword } from "./authApi";
 import { handleDeleteCategory, handlePatchCategory, handlePostCategory } from "./categories";
 import {
   handleDeleteFixedExpense,
@@ -152,6 +152,12 @@ export default {
     if (url.pathname === "/api/auth/login" && request.method === "POST") {
       if (!env.AUTH_SECRET) return errorResponse(500, "Internal Server Error");
       return handleLogin(env.DB, env.AUTH_SECRET, request);
+    }
+    if (url.pathname === "/api/auth/reset-request" && request.method === "POST") {
+      return handleResetRequest(env.DB, request);
+    }
+    if (url.pathname === "/api/auth/reset-password" && request.method === "POST") {
+      return handleResetPassword(env.DB, request);
     }
 
     // --- Auth: derive user_id from request ---

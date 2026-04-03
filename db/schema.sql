@@ -99,3 +99,14 @@ CREATE TABLE IF NOT EXISTS fixed_expenses (
 
 CREATE INDEX IF NOT EXISTS idx_fixed_expenses_user_month
   ON fixed_expenses(user_id, month_key);
+
+-- password_reset_tokens（パスワードリセット用）
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+  token      TEXT PRIMARY KEY,
+  user_id    TEXT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+  expires_at TEXT NOT NULL, -- ISO 8601
+  created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
+);
+
+CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user
+  ON password_reset_tokens(user_id);

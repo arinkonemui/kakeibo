@@ -853,6 +853,48 @@ body {
   margin-top: 4px;
 }
 
+.btn-forgot-password {
+  width: 100%;
+  padding: 8px;
+  margin-top: 12px;
+  font-size: 0.85rem;
+  background: none;
+  border: none;
+  color: #0066cc;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+.btn-forgot-password:hover {
+  color: #0052a3;
+}
+.btn-forgot-password:disabled {
+  color: #aaa;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+.reset-desc {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.btn-text-link {
+  background: none;
+  border: none;
+  color: #0066cc;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  font-size: inherit;
+  transition: color 0.2s;
+}
+.btn-text-link:hover {
+  color: #0052a3;
+}
+
 /* --- User bar in header --- */
 .app-user-bar {
   display: flex;

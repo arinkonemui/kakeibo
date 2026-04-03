@@ -275,3 +275,34 @@ export async function updateProfile(patch: {
   }
   return body as { ok: true; displayName: string };
 }
+
+export async function requestPasswordReset(
+  email: string,
+): Promise<{ ok: true } | { error: string }> {
+  const res = await fetch("/api/auth/reset-request", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { error: (body as { error?: string }).error ?? `HTTP ${res.status}` };
+  }
+  return { ok: true };
+}
+
+export async function resetPassword(
+  token: string,
+  newPassword: string,
+): Promise<{ ok: true } | { error: string }> {
+  const res = await fetch("/api/auth/reset-password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, newPassword }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { error: (body as { error?: string }).error ?? `HTTP ${res.status}` };
+  }
+  return body as { ok: true };
+}

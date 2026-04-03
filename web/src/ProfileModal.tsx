@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { updateProfile } from "./api";
+import { PasswordResetModal } from "./PasswordResetModal";
 
 interface Props {
   displayName: string | null;
@@ -25,6 +26,7 @@ export function ProfileModal({ displayName, onClose, onUpdated }: Props) {
   const [newPw2, setNewPw2] = useState("");
   const [pwMsg, setPwMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pwLoading, setPwLoading] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
 
   // ── ユーザー名変更 ──
   async function handleUsernameSubmit(e: React.FormEvent) {
@@ -169,7 +171,17 @@ export function ProfileModal({ displayName, onClose, onUpdated }: Props) {
 
           {/* ── パスワード ── */}
           <section className="profile-section">
-            <h4 className="profile-section-title">パスワード</h4>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <h4 className="profile-section-title">パスワード</h4>
+              <button
+                type="button"
+                className="btn-text-link"
+                onClick={() => setResetOpen(true)}
+                style={{ fontSize: "0.85rem", color: "#0066cc" }}
+              >
+                リセット用メールを送信
+              </button>
+            </div>
             <form onSubmit={handlePwSubmit}>
               <div className="form-row">
                 <label>
@@ -224,6 +236,15 @@ export function ProfileModal({ displayName, onClose, onUpdated }: Props) {
           </section>
         </div>
       </div>
+
+      {resetOpen && (
+        <PasswordResetModal
+          onClose={() => setResetOpen(false)}
+          onSuccess={() => {
+            setResetOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

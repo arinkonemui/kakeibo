@@ -91,6 +91,112 @@ export async function handleRegister(
   return json({ token, userId, displayName }, 201);
 }
 
+/** POST /api/auth/reset-request */
+export async function handleResetRequest(
+  db: D1Database,
+  request: Request,
+): Promise<Response> {
+  let body: { email?: unknown };
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: "Invalid JSON" }, 400);
+  }
+
+  const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  if (!email || !EMAIL_RE.test(email)) {
+    return json({ error: "有効なメールアドレスを入力してください" }, 400);
+  }
+
+  const user = await db
+    .prepare("SELECT user_id FROM users WHERE email = ?")
+    .bind(email)
+    .first<{ user_id: string }>();
+
+  if (!user) {
+    // セキュリティ：ユーザーが存在しなくても同じレスポンス
+    return json({ ok: true });
+  }
+
+  // トークン生成（32文字のランダム文字列）
+  const token = Array.from(crypto.getRandomValues(new Uint8Array(24)))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+  // 15分後に期限切れ
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+
+  // 既存トークンを削除してから新規作成
+  await db
+    .prepare("DELETE FROM password_reset_tokens WHERE user_id = ?")
+    .bind(user.user_id)
+    .run();
+
+  await db
+    .prepare("INSERT INTO password_reset_tokens (token, user_id, expires_at) VALUES (?, ?, ?)")
+    .bind(token, user.user_id, expiresAt)
+    .run();
+
+  // デモ用：トークンをコンソール出力（実本番ではメール送信）
+  console.log(`[Password Reset] Email: ${email}, Token: ${token}`);
+
+  return json({ ok: true });
+}
+
+/** POST /api/auth/reset-password */
+export async function handleResetPassword(
+  db: D1Database,
+  request: Request,
+): Promise<Response> {
+  let body: { token?: unknown; newPassword?: unknown };
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: "Invalid JSON" }, 400);
+  }
+
+  const token = typeof body.token === "string" ? body.token.trim() : "";
+  const newPassword = typeof body.newPassword === "string" ? body.newPassword : "";
+
+  if (!token) return json({ error: "リセットコードが入力されていません" }, 400);
+  if (newPassword.length < 8) {
+    return json({ error: "パスワードは8文字以上で入力してください" }, 400);
+  }
+
+  const resetToken = await db
+    .prepare("SELECT user_id, expires_at FROM password_reset_tokens WHERE token = ?")
+    .bind(token)
+    .first<{ user_id: string; expires_at: string }>();
+
+  if (!resetToken) {
+    return json({ error: "無効なリセットコードです" }, 400);
+  }
+
+  // 期限切れチェック
+  if (new Date(resetToken.expires_at) < new Date()) {
+    await db
+      .prepare("DELETE FROM password_reset_tokens WHERE token = ?")
+      .bind(token)
+      .run();
+    return json({ error: "リセットコードが期限切れです" }, 400);
+  }
+
+  // パスワード更新
+  const passwordHash = await hashPassword(newPassword);
+  await db
+    .prepare("UPDATE users SET password_hash = ? WHERE user_id = ?")
+    .bind(passwordHash, resetToken.user_id)
+    .run();
+
+  // トークン削除
+  await db
+    .prepare("DELETE FROM password_reset_tokens WHERE token = ?")
+    .bind(token)
+    .run();
+
+  return json({ ok: true });
+}
+
 /** PATCH /api/auth/profile */
 export async function handlePatchProfile(
   db: D1Database,

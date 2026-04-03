@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { authLogin, authRegister } from "./api";
+import { PasswordResetModal } from "./PasswordResetModal";
 
 type Mode = "login" | "register";
 
@@ -9,6 +10,7 @@ interface Props {
 
 export function LoginScreen({ onLogin }: Props) {
   const [mode, setMode] = useState<Mode>("login");
+  const [resetOpen, setResetOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
@@ -112,8 +114,28 @@ export function LoginScreen({ onLogin }: Props) {
           <button className="btn-primary login-submit" type="submit" disabled={loading}>
             {loading ? "処理中..." : mode === "login" ? "ログイン" : "登録して始める"}
           </button>
+
+          {mode === "login" && (
+            <button
+              type="button"
+              className="btn-forgot-password"
+              onClick={() => setResetOpen(true)}
+              disabled={loading}
+            >
+              パスワードをお忘れですか？
+            </button>
+          )}
         </form>
       </div>
+
+      {resetOpen && (
+        <PasswordResetModal
+          onClose={() => setResetOpen(false)}
+          onSuccess={() => {
+            setResetOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }
