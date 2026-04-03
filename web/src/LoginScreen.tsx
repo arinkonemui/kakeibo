@@ -47,7 +47,7 @@ export function LoginScreen({ onLogin }: Props) {
     <div className="login-screen">
       <div className="login-card">
         <h1 className="login-brand">おさいふノート</h1>
-        <p className="login-catchphrase">1か月を一目で見渡す。兄開きカレンダー型のシンプル家計簿。</p>
+        <p className="login-catchphrase">1か月を一目で見渡す。見開きカレンダー型のシンプル家計簿。</p>
 
         {/* Tab */}
         <div className="login-tabs">
