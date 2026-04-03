@@ -172,6 +172,8 @@ export function ExportTab({
         monthKey={monthKey}
         data={data}
         localEntries={localEntries}
+        fxExpenseItems={fxItems.filter((i) => i.entry_type === "expense")}
+        fxIncomeItems={fxItems.filter((i) => i.entry_type === "income")}
       />
     </div>
   );

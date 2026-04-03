@@ -19,7 +19,12 @@ import {
 } from "./aggregateUtils";
 import { LineChart } from "./charts/LineChart";
 import { PieChart } from "./charts/PieChart";
-import type { EntryRow, MonthlyDataset } from "./types";
+import type { EntryRow, FixedExpenseRow, MonthlyDataset } from "./types";
+
+const FX_PALETTE = [
+  "#e8a838", "#4a9fd4", "#e74c3c", "#2ecc71", "#9b59b6",
+  "#1abc9c", "#f39c12", "#3498db", "#e67e22", "#16a085",
+];
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"] as const;
 
@@ -53,9 +58,11 @@ interface Props {
   data: MonthlyDataset;
   /** ops 適用済みエントリ（保存前の最新状態） */
   localEntries: EntryRow[];
+  fxExpenseItems: FixedExpenseRow[];
+  fxIncomeItems: FixedExpenseRow[];
 }
 
-export function PdfPrintLayout({ monthKey, data, localEntries }: Props) {
+export function PdfPrintLayout({ monthKey, data, localEntries, fxExpenseItems, fxIncomeItems }: Props) {
   // アクティブな支出カテゴリ（MonthlyTable と同一フィルタ）
   const columns = useMemo(
     () =>
@@ -134,119 +141,65 @@ export function PdfPrintLayout({ monthKey, data, localEntries }: Props) {
     [dailyTotals],
   );
 
+  // Fixed expense / income totals
+  const fixedExpenseTotal = useMemo(
+    () => fxExpenseItems.reduce((s, i) => s + i.amount, 0),
+    [fxExpenseItems],
+  );
+  const incomeTotal = useMemo(
+    () => fxIncomeItems.reduce((s, i) => s + i.amount, 0),
+    [fxIncomeItems],
+  );
+  const grandExpenseTotal = fixedExpenseTotal + summary.totalExpense;
+  const netBalance = incomeTotal - grandExpenseTotal;
+
+  // 収入内訳スライス（固定費 + カテゴリ支出）
+  const incomeBreakdownItems = useMemo(() => {
+    const items: { label: string; value: number; color: string }[] = [];
+    fxExpenseItems
+      .filter((i) => i.amount > 0)
+      .forEach((i, idx) => {
+        items.push({ label: i.name, value: i.amount, color: FX_PALETTE[idx % FX_PALETTE.length]! });
+      });
+    categoryItems
+      .filter((c) => c.total > 0)
+      .forEach((c) => {
+        items.push({ label: c.name, value: c.total, color: c.color });
+      });
+    return items;
+  }, [fxExpenseItems, categoryItems]);
+
+  const fxExpenseSlices = useMemo(
+    () =>
+      fxExpenseItems
+        .filter((i) => i.amount > 0)
+        .map((i, idx) => ({
+          label: i.name,
+          value: i.amount,
+          color: FX_PALETTE[idx % FX_PALETTE.length]!,
+        })),
+    [fxExpenseItems],
+  );
+
+  const fxIncomeSlices = useMemo(
+    () =>
+      fxIncomeItems
+        .filter((i) => i.amount > 0)
+        .map((i, idx) => ({
+          label: i.name,
+          value: i.amount,
+          color: FX_PALETTE[(idx + 4) % FX_PALETTE.length]!,
+        })),
+    [fxIncomeItems],
+  );
+
   const [year, month] = monthKey.split("-");
   const monthLabel = `${year}年${month}月`;
 
   const content = (
     <div className="pdf-root">
-      {/* ===== 1枚目: 月間マトリクス ===== */}
+      {/* ===== 1枚目: グラフ＋合算値 ===== */}
       <div className="pdf-page">
-        <header className="pdf-header">
-          <span className="pdf-app-name">おさいふノート</span>
-          <span className="pdf-header-title">{monthLabel} 家計簿</span>
-        </header>
-
-        <table className="pdf-matrix-table">
-          <thead>
-            <tr>
-              <th className="pdf-col-day">日</th>
-              <th className="pdf-col-dow">曜</th>
-              {columns.map((c) => (
-                <th key={c.category_id} className="pdf-col-cat">
-                  {c.name}
-                </th>
-              ))}
-              <th className="pdf-col-summary">支出</th>
-              <th className="pdf-col-summary">収入</th>
-              <th className="pdf-col-summary">合計</th>
-            </tr>
-          </thead>
-          <tbody>
-            {matrixRows.map((row) => {
-              const dow = new Date(row.dateStr).getDay();
-              const isWeekend = dow === 0 || dow === 6;
-              const net = row.income - row.expense;
-              return (
-                <tr
-                  key={row.day}
-                  className={isWeekend ? "pdf-row-weekend" : undefined}
-                >
-                  <td className="pdf-col-day">{row.day}</td>
-                  <td
-                    className="pdf-col-dow"
-                    style={{
-                      color:
-                        dow === 0
-                          ? "#e74c3c"
-                          : dow === 6
-                            ? "#3498db"
-                            : undefined,
-                    }}
-                  >
-                    {WEEKDAYS[dow]}
-                  </td>
-                  {columns.map((c) => {
-                    const val = row.cells.get(c.category_id) ?? 0;
-                    return (
-                      <td key={c.category_id} className="pdf-num pdf-col-cat">
-                        {val > 0 ? `¥${fmt(val)}` : ""}
-                      </td>
-                    );
-                  })}
-                  <td className="pdf-num pdf-col-summary">
-                    {row.expense > 0 ? `¥${fmt(row.expense)}` : ""}
-                  </td>
-                  <td className="pdf-num pdf-col-summary">
-                    {row.income > 0 ? `¥${fmt(row.income)}` : ""}
-                  </td>
-                  <td
-                    className="pdf-num pdf-col-summary"
-                    style={
-                      net !== 0
-                        ? { color: net < 0 ? "#e74c3c" : "#27ae60" }
-                        : undefined
-                    }
-                  >
-                    {net !== 0 ? `¥${fmt(net)}` : ""}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-          <tfoot>
-            <tr className="pdf-tfoot-row">
-              <td colSpan={2} className="pdf-tfoot-label">
-                合計
-              </td>
-              {columns.map((c) => {
-                const total = categoryTotals.get(c.category_id) ?? 0;
-                return (
-                  <td key={c.category_id} className="pdf-num pdf-col-cat">
-                    {total > 0 ? `¥${fmt(total)}` : ""}
-                  </td>
-                );
-              })}
-              <td className="pdf-num pdf-col-summary">
-                ¥{fmt(summary.totalExpense)}
-              </td>
-              <td className="pdf-num pdf-col-summary">
-                ¥{fmt(summary.totalIncome)}
-              </td>
-              <td
-                className="pdf-num pdf-col-summary"
-                style={{
-                  color: summary.netBalance < 0 ? "#e74c3c" : "#27ae60",
-                }}
-              >
-                ¥{fmt(summary.netBalance)}
-              </td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-
-      {/* ===== 2枚目: グラフ＋合算値 ===== */}
-      <div className="pdf-page pdf-page-last">
         <header className="pdf-header">
           <span className="pdf-app-name">おさいふノート</span>
           <span className="pdf-header-title">{monthLabel} 集計</span>
@@ -255,45 +208,181 @@ export function PdfPrintLayout({ monthKey, data, localEntries }: Props) {
         {/* サマリー */}
         <section className="pdf-summary">
           <div className="pdf-summary-item">
-            <span className="pdf-summary-label">支出合計</span>
+            <span className="pdf-summary-label">固定費</span>
+            <span className="pdf-summary-value">¥{fmt(fixedExpenseTotal)}</span>
+          </div>
+          <div className="pdf-summary-item">
+            <span className="pdf-summary-label">支出額</span>
             <span className="pdf-summary-value">¥{fmt(summary.totalExpense)}</span>
           </div>
           <div className="pdf-summary-item">
-            <span className="pdf-summary-label">収入合計</span>
-            <span className="pdf-summary-value">¥{fmt(summary.totalIncome)}</span>
+            <span className="pdf-summary-label">支出総合計</span>
+            <span className="pdf-summary-value">¥{fmt(grandExpenseTotal)}</span>
+          </div>
+          <div className="pdf-summary-item">
+            <span className="pdf-summary-label">収入額</span>
+            <span className="pdf-summary-value">¥{fmt(incomeTotal)}</span>
           </div>
           <div className="pdf-summary-item">
             <span className="pdf-summary-label">収支差額</span>
             <span
               className="pdf-summary-value"
-              style={{ color: summary.netBalance < 0 ? "#e74c3c" : "#27ae60" }}
+              style={{ color: netBalance < 0 ? "#e74c3c" : "#27ae60" }}
             >
-              ¥{fmt(summary.netBalance)}
+              ¥{fmt(netBalance)}
             </span>
           </div>
-          {summary.monthlyBudget != null && (
-            <div className="pdf-summary-item">
-              <span className="pdf-summary-label">予算残</span>
-              <span
-                className="pdf-summary-value"
-                style={{
-                  color: summary.budgetRemaining! < 0 ? "#e74c3c" : "#27ae60",
-                }}
-              >
-                ¥{fmt(summary.budgetRemaining!)}
-              </span>
-            </div>
-          )}
           <div className="pdf-summary-item">
             <span className="pdf-summary-label">支出件数</span>
             <span className="pdf-summary-value">{summary.expenseCount}件</span>
           </div>
-          {summary.incomeCount > 0 && (
-            <div className="pdf-summary-item">
-              <span className="pdf-summary-label">収入件数</span>
-              <span className="pdf-summary-value">{summary.incomeCount}件</span>
+        </section>
+
+        {/* 収入に対する支出 内訳 */}
+        {incomeTotal > 0 && incomeBreakdownItems.length > 0 && (
+          <section className="pdf-section">
+            <h3 className="pdf-section-title">収入に対する支出 内訳</h3>
+            <div className="pdf-category-row">
+              <div className="pdf-pie-wrapper">
+                <PieChart slices={incomeBreakdownItems} size={110} />
+              </div>
+              <table className="pdf-cat-table">
+                <thead>
+                  <tr>
+                    <th>カテゴリ</th>
+                    <th className="pdf-num">金額</th>
+                    <th className="pdf-num">割合</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {incomeBreakdownItems.map((item, idx) => (
+                    <tr key={idx}>
+                      <td>
+                        <span className="pdf-color-dot" style={{ background: item.color }} />
+                        {item.label}
+                      </td>
+                      <td className="pdf-num">¥{fmt(item.value)}</td>
+                      <td className="pdf-num">
+                        {((item.value / incomeTotal) * 100).toFixed(1)}%
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="pdf-tfoot-row">
+                    <td>支出総合計</td>
+                    <td className="pdf-num">¥{fmt(grandExpenseTotal)}</td>
+                    <td className="pdf-num">
+                      {((grandExpenseTotal / incomeTotal) * 100).toFixed(1)}%
+                    </td>
+                  </tr>
+                  <tr className="pdf-tfoot-row">
+                    <td style={{ color: netBalance < 0 ? "#e74c3c" : "#27ae60" }}>収支差額</td>
+                    <td className="pdf-num" style={{ color: netBalance < 0 ? "#e74c3c" : "#27ae60" }}>
+                      ¥{fmt(netBalance)}
+                    </td>
+                    <td className="pdf-num" style={{ color: netBalance < 0 ? "#e74c3c" : "#27ae60" }}>
+                      {((netBalance / incomeTotal) * 100).toFixed(1)}%
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
             </div>
-          )}
+          </section>
+        )}
+
+        {/* 固定費・収入 内訳 */}
+        <section className="pdf-section">
+          <h3 className="pdf-section-title">固定費・収入 内訳</h3>
+          <div className="pdf-fx-row">
+            {/* 固定費 */}
+            <div className="pdf-fx-block">
+              <div className="pdf-fx-subtitle">固定費</div>
+              {fxExpenseItems.some((i) => i.amount > 0) ? (
+                <div className="pdf-category-row">
+                  <div className="pdf-pie-wrapper">
+                    <PieChart slices={fxExpenseSlices} size={90} />
+                  </div>
+                  <table className="pdf-cat-table">
+                    <thead>
+                      <tr>
+                        <th>項目</th>
+                        <th className="pdf-num">金額</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {fxExpenseItems
+                        .filter((i) => i.amount > 0)
+                        .map((i, idx) => (
+                          <tr key={i.fixed_expense_id}>
+                            <td>
+                              <span
+                                className="pdf-color-dot"
+                                style={{ background: FX_PALETTE[idx % FX_PALETTE.length] }}
+                              />
+                              {i.name}
+                            </td>
+                            <td className="pdf-num">¥{fmt(i.amount)}</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="pdf-tfoot-row">
+                        <td>合計</td>
+                        <td className="pdf-num">¥{fmt(fixedExpenseTotal)}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              ) : (
+                <p className="pdf-empty">固定費データなし</p>
+              )}
+            </div>
+
+            {/* 収入 */}
+            <div className="pdf-fx-block">
+              <div className="pdf-fx-subtitle">収入</div>
+              {fxIncomeItems.some((i) => i.amount > 0) ? (
+                <div className="pdf-category-row">
+                  <div className="pdf-pie-wrapper">
+                    <PieChart slices={fxIncomeSlices} size={90} />
+                  </div>
+                  <table className="pdf-cat-table">
+                    <thead>
+                      <tr>
+                        <th>項目</th>
+                        <th className="pdf-num">金額</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {fxIncomeItems
+                        .filter((i) => i.amount > 0)
+                        .map((i, idx) => (
+                          <tr key={i.fixed_expense_id}>
+                            <td>
+                              <span
+                                className="pdf-color-dot"
+                                style={{ background: FX_PALETTE[(idx + 4) % FX_PALETTE.length] }}
+                              />
+                              {i.name}
+                            </td>
+                            <td className="pdf-num">¥{fmt(i.amount)}</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="pdf-tfoot-row">
+                        <td>合計</td>
+                        <td className="pdf-num">¥{fmt(incomeTotal)}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              ) : (
+                <p className="pdf-empty">収入データなし</p>
+              )}
+            </div>
+          </div>
         </section>
 
         {/* カテゴリ別支出 */}
@@ -360,6 +449,85 @@ export function PdfPrintLayout({ monthKey, data, localEntries }: Props) {
             />
           </div>
         </section>
+      </div>
+
+      {/* ===== 2枚目: 月間マトリクス ===== */}
+      <div className="pdf-page pdf-page-last">
+        <header className="pdf-header">
+          <span className="pdf-app-name">おさいふノート</span>
+          <span className="pdf-header-title">{monthLabel} 家計簿</span>
+        </header>
+
+        <table className="pdf-matrix-table">
+          <thead>
+            <tr>
+              <th className="pdf-col-day">日</th>
+              <th className="pdf-col-dow">曜</th>
+              {columns.map((c) => (
+                <th key={c.category_id} className="pdf-col-cat">
+                  {c.name}
+                </th>
+              ))}
+              <th className="pdf-col-summary">合計</th>
+            </tr>
+          </thead>
+          <tbody>
+            {matrixRows.map((row) => {
+              const dow = new Date(row.dateStr).getDay();
+              const isWeekend = dow === 0 || dow === 6;
+              return (
+                <tr
+                  key={row.day}
+                  className={isWeekend ? "pdf-row-weekend" : undefined}
+                >
+                  <td className="pdf-col-day">{row.day}</td>
+                  <td
+                    className="pdf-col-dow"
+                    style={{
+                      color:
+                        dow === 0
+                          ? "#e74c3c"
+                          : dow === 6
+                            ? "#3498db"
+                            : undefined,
+                    }}
+                  >
+                    {WEEKDAYS[dow]}
+                  </td>
+                  {columns.map((c) => {
+                    const val = row.cells.get(c.category_id) ?? 0;
+                    return (
+                      <td key={c.category_id} className="pdf-num pdf-col-cat">
+                        {val > 0 ? `¥${fmt(val)}` : ""}
+                      </td>
+                    );
+                  })}
+                  <td className="pdf-num pdf-col-summary">
+                    {row.expense > 0 ? `¥${fmt(row.expense)}` : ""}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+          <tfoot>
+            <tr className="pdf-tfoot-row">
+              <td colSpan={2} className="pdf-tfoot-label">
+                合計
+              </td>
+              {columns.map((c) => {
+                const total = categoryTotals.get(c.category_id) ?? 0;
+                return (
+                  <td key={c.category_id} className="pdf-num pdf-col-cat">
+                    {total > 0 ? `¥${fmt(total)}` : ""}
+                  </td>
+                );
+              })}
+              <td className="pdf-num pdf-col-summary">
+                ¥{fmt(summary.totalExpense)}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
       </div>
     </div>
   );
