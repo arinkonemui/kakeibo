@@ -452,7 +452,8 @@ function AppInner({
     if (!data) return;
     const hasEntries = data.entries.length > 0;
     const hasBudgets = data.daily_budgets.length > 0;
-    if (!hasEntries && !hasBudgets) return;
+    const hasFixed = fx.items.some((item) => item.amount !== 0);
+    if (!hasEntries && !hasBudgets && !hasFixed) return;
 
     const result = await showConfirm(
       `${monthKey}のデータを削除しますか？\n削除前にCSVへアーカイブ保存しますか？`,
@@ -460,33 +461,47 @@ function AppInner({
     );
     if (result === "cancel") return;
 
-    if (result === "ok" && hasEntries) {
-      const csv = generateEntriesCsv(data.entries, data.categories);
+    if (result === "ok" && (hasEntries || hasFixed)) {
+      const csv = generateEntriesCsv(data.entries, data.categories, fx.items);
       const saved = await downloadCsvWithPicker(csv, `osaifu_${monthKey}_entries.csv`);
       if (!saved) return; // ユーザーがファイル保存をキャンセル → 削除しない
     }
 
     setSaving(true);
     setSaveError(null);
+
+    // saveMonthly は entries/budgets 削除に加え months レコードを必ず作成する。
+    // months レコードが存在することで固定費 GET の自動シードを抑制できる。
     const deleteResult = await saveMonthly(monthKey, data.month?.version ?? 0, {
       delete_entry_ids: data.entries.map((e) => e.entry_id),
       delete_daily_budget_dates: data.daily_budgets.map((db) => db.date),
     });
-    setSaving(false);
-
     if ("conflict" in deleteResult) {
       setConflictMsg(deleteResult.message);
+      setSaving(false);
       return;
     }
     if ("error" in deleteResult) {
       setSaveError(deleteResult.error);
+      setSaving(false);
       return;
     }
 
+    if (hasFixed) {
+      // カテゴリは残し、金額のみ 0 にリセットする
+      for (const item of fx.items) {
+        if (item.amount !== 0) {
+          await updateFixedExpense(item.fixed_expense_id, { amount: 0 });
+        }
+      }
+      await fx.reload();
+    }
+
+    setSaving(false);
     ops.reset();
     setModal(null);
     refetch();
-  }, [data, monthKey, ops, showConfirm, refetch]);
+  }, [data, monthKey, ops, showConfirm, refetch, fx]);
 
   // --- Conflict reload ---
   const handleConflictReload = useCallback(() => {
@@ -748,7 +763,7 @@ function AppInner({
       )}
 
       {/* Delete month bar — 月間・週間タブでデータがある場合のみ */}
-      {!archive && editable && data && (data.entries.length > 0 || data.daily_budgets.length > 0) &&
+      {!archive && editable && data && (data.entries.length > 0 || data.daily_budgets.length > 0 || fx.items.some((item) => item.amount !== 0)) &&
         (activeTab === "monthly" || activeTab === "weekly") && (
         <div className="month-delete-bar">
           <button className="btn-delete-month" onClick={handleDeleteMonth} disabled={saving}>

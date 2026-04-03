@@ -81,6 +81,15 @@ export async function handleGetFixedExpenses(
     return jsonResponse(200, { ok: true, items: rows.results });
   }
 
+  // months レコードが存在する月は「意図的にクリア済み」とみなしシードしない
+  const monthsRecord = await db
+    .prepare("SELECT month_key FROM months WHERE user_id = ? AND month_key = ?")
+    .bind(user_id, month_key)
+    .first<{ month_key: string }>();
+  if (monthsRecord) {
+    return jsonResponse(200, { ok: true, items: [] });
+  }
+
   // 初回アクセス — 前月からコピーを試みる
   const now = new Date().toISOString().replace("T", " ").slice(0, 19);
   const prev = prevMonthKey(month_key);
@@ -287,13 +296,12 @@ export async function handleDeleteFixedExpense(
 ): Promise<Response> {
   const existing = await db
     .prepare(
-      "SELECT is_default FROM fixed_expenses WHERE fixed_expense_id = ? AND user_id = ?",
+      "SELECT fixed_expense_id FROM fixed_expenses WHERE fixed_expense_id = ? AND user_id = ?",
     )
     .bind(fixed_expense_id, user_id)
-    .first<{ is_default: number }>();
+    .first<{ fixed_expense_id: string }>();
 
   if (!existing) return errorResponse(404, "Fixed expense not found.");
-  if (existing.is_default === 1) return errorResponse(403, "デフォルト固定費は削除できません。");
 
   await db
     .prepare("DELETE FROM fixed_expenses WHERE fixed_expense_id = ? AND user_id = ?")
