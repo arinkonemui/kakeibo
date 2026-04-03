@@ -159,13 +159,11 @@ export default {
       if (env.ASSETS) {
         // ルートは index.html へ
         const filePath = pathname === "/" ? "/index.html" : pathname;
-        const assetUrl = new URL(request.url);
-        assetUrl.pathname = filePath;
-        const assetRes = await env.ASSETS.fetch(new Request(assetUrl.toString(), request));
+        // ダミーホストを使用（実ドメインだと Cloudflare がリダイレクトを返すため）
+        const assetRes = await env.ASSETS.fetch(new Request(`http://assets.local${filePath}`));
         // ファイルが見つからない場合は SPA の index.html を返す
         if (assetRes.status === 404) {
-          assetUrl.pathname = "/index.html";
-          return env.ASSETS.fetch(new Request(assetUrl.toString(), request));
+          return env.ASSETS.fetch(new Request("http://assets.local/index.html"));
         }
         return assetRes;
       }
