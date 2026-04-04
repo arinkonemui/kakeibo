@@ -1,5 +1,5 @@
 import { type AuthEnv, AuthError, getAuthUserId } from "./auth";
-import { handleDeleteAccount, handleLogin, handlePatchProfile, handleRegister, handleResetRequest, handleResetPassword } from "./authApi";
+import { handleDeleteAccount, handleLogin, handlePatchProfile, handleRegister, handleResendVerification, handleResetPassword, handleResetRequest, handleVerifyEmail } from "./authApi";
 import { handleDeleteCategory, handlePatchCategory, handlePostCategory } from "./categories";
 import {
   handleDeleteFixedExpense,
@@ -20,6 +20,8 @@ export interface Env extends AuthEnv {
   RESEND_API_KEY?: string;
   /** メール送信元アドレス（例: "おさいふノート <noreply@arinkolab.com>"） */
   MAIL_FROM?: string;
+  /** サイトのベースURL（確認メールのリンク生成用、例: https://arinkolab.com/apps/kakeibo） */
+  SITE_URL?: string;
 }
 
 // --- Types ---
@@ -177,7 +179,16 @@ export default {
     // --- Public auth endpoints (no token required) ---
     if (pathname === "/api/auth/register" && request.method === "POST") {
       if (!env.AUTH_SECRET) return errorResponse(500, "Internal Server Error");
-      return handleRegister(env.DB, env.AUTH_SECRET, request);
+      const siteUrl = env.SITE_URL ?? `https://${new URL(request.url).hostname}${env.BASE_PATH ?? ""}`;
+      return handleRegister(env.DB, env.AUTH_SECRET, request, env.RESEND_API_KEY, env.MAIL_FROM, siteUrl);
+    }
+    if (pathname === "/api/auth/verify-email" && request.method === "GET") {
+      if (!env.AUTH_SECRET) return errorResponse(500, "Internal Server Error");
+      return handleVerifyEmail(env.DB, env.AUTH_SECRET, request);
+    }
+    if (pathname === "/api/auth/resend-verification" && request.method === "POST") {
+      const siteUrl = env.SITE_URL ?? `https://${new URL(request.url).hostname}${env.BASE_PATH ?? ""}`;
+      return handleResendVerification(env.DB, request, env.RESEND_API_KEY, env.MAIL_FROM, siteUrl);
     }
     if (pathname === "/api/auth/login" && request.method === "POST") {
       if (!env.AUTH_SECRET) return errorResponse(500, "Internal Server Error");

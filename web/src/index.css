@@ -853,6 +853,35 @@ body {
   margin-top: 4px;
 }
 
+/* ── メールアドレス確認待ち画面 ── */
+.verify-pending {
+  text-align: center;
+  padding: 1rem 0;
+}
+.verify-pending-icon {
+  font-size: 3rem;
+  margin-bottom: 0.75rem;
+}
+.verify-pending h2 {
+  font-size: 1.1rem;
+  color: #333;
+  margin: 0 0 1rem;
+}
+.verify-pending p {
+  font-size: 0.9rem;
+  color: #555;
+  margin: 0 0 0.75rem;
+  line-height: 1.6;
+}
+.verify-pending-note {
+  font-size: 0.8rem !important;
+  color: #888 !important;
+}
+.verify-resend-box {
+  margin: 0.5rem 0;
+  text-align: center;
+}
+
 .btn-forgot-password {
   width: 100%;
   padding: 8px;

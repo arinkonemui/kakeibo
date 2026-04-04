@@ -2,11 +2,12 @@ PRAGMA foreign_keys = ON;
 
 -- users
 CREATE TABLE IF NOT EXISTS users (
-  user_id       TEXT PRIMARY KEY,
-  email         TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,  -- "<salt_hex>:<hash_hex>" (PBKDF2-SHA256)
-  username      TEXT,           -- NULL = display email-local-part
-  created_at    TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
+  user_id        TEXT PRIMARY KEY,
+  email          TEXT UNIQUE NOT NULL,
+  password_hash  TEXT NOT NULL,  -- "<salt_hex>:<hash_hex>" (PBKDF2-SHA256)
+  username       TEXT,           -- NULL = display email-local-part
+  email_verified INTEGER NOT NULL DEFAULT 0, -- 0=未確認 / 1=確認済み
+  created_at     TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );
 
 -- months
@@ -99,6 +100,17 @@ CREATE TABLE IF NOT EXISTS fixed_expenses (
 
 CREATE INDEX IF NOT EXISTS idx_fixed_expenses_user_month
   ON fixed_expenses(user_id, month_key);
+
+-- email_verification_tokens（メールアドレス確認用）
+CREATE TABLE IF NOT EXISTS email_verification_tokens (
+  token      TEXT PRIMARY KEY,
+  user_id    TEXT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+  expires_at TEXT NOT NULL, -- ISO 8601 (24時間有効)
+  created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_verification_tokens_user
+  ON email_verification_tokens(user_id);
 
 -- password_reset_tokens（パスワードリセット用）
 CREATE TABLE IF NOT EXISTS password_reset_tokens (

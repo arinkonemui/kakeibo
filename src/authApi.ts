@@ -17,6 +17,7 @@ interface UserRow {
   email: string;
   password_hash: string;
   username: string | null;
+  email_verified: number;
 }
 
 function json(body: unknown, status = 200): Response {
@@ -28,11 +29,34 @@ function json(body: unknown, status = 200): Response {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/** メールアドレス確認トークンを生成してDBに保存する（内部ヘルパー） */
+async function createVerificationToken(db: D1Database, userId: string): Promise<string> {
+  const token = Array.from(crypto.getRandomValues(new Uint8Array(24)))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  // 24時間有効
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+  await db
+    .prepare("DELETE FROM email_verification_tokens WHERE user_id = ?")
+    .bind(userId)
+    .run();
+  await db
+    .prepare("INSERT INTO email_verification_tokens (token, user_id, expires_at) VALUES (?, ?, ?)")
+    .bind(token, userId, expiresAt)
+    .run();
+
+  return token;
+}
+
 /** POST /api/auth/register */
 export async function handleRegister(
   db: D1Database,
   secret: string,
   request: Request,
+  resendApiKey?: string,
+  mailFrom?: string,
+  siteUrl?: string,
 ): Promise<Response> {
   let body: { email?: unknown; password?: unknown; username?: unknown };
   try {
@@ -62,19 +86,29 @@ export async function handleRegister(
   try {
     await db
       .prepare(
-        "INSERT INTO users (user_id, email, password_hash, username) VALUES (?, ?, ?, ?)",
+        "INSERT INTO users (user_id, email, password_hash, username, email_verified) VALUES (?, ?, ?, ?, 0)",
       )
       .bind(userId, email, passwordHash, username)
       .run();
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "";
     if (msg.includes("UNIQUE") || msg.includes("unique")) {
+      // 未確認のまま再登録しようとしている場合は確認メールを再送
+      const existing = await db
+        .prepare("SELECT user_id, email_verified FROM users WHERE email = ?")
+        .bind(email)
+        .first<{ user_id: string; email_verified: number }>();
+      if (existing && existing.email_verified === 0) {
+        const token = await createVerificationToken(db, existing.user_id);
+        await sendVerificationEmail(resendApiKey, mailFrom, siteUrl, email, token);
+        return json({ pendingVerification: true }, 200);
+      }
       return json({ error: "このメールアドレスは既に登録されています" }, 409);
     }
     throw e;
   }
 
-  // Insert default categories for the new user
+  // デフォルトカテゴリを挿入
   const defaultCategories = ["食費", "交通費", "医療費", "雑費"];
   for (let i = 0; i < defaultCategories.length; i++) {
     const catId = crypto.randomUUID();
@@ -86,10 +120,127 @@ export async function handleRegister(
       .run();
   }
 
-  const token = await issueToken(userId, secret);
-  const displayName = username ?? email.split("@")[0]!;
+  // 確認メール送信
+  const verifyToken = await createVerificationToken(db, userId);
+  const mailResult = await sendVerificationEmail(resendApiKey, mailFrom, siteUrl, email, verifyToken);
+  if (!mailResult.ok) {
+    // メール送信失敗時はユーザーを削除してエラー
+    await db.prepare("DELETE FROM users WHERE user_id = ?").bind(userId).run();
+    return json({ error: mailResult.error }, mailResult.rateLimited ? 429 : 500);
+  }
 
-  return json({ token, userId, displayName }, 201);
+  return json({ pendingVerification: true }, 201);
+}
+
+/** 確認メール送信ヘルパー */
+async function sendVerificationEmail(
+  resendApiKey: string | undefined,
+  mailFrom: string | undefined,
+  siteUrl: string | undefined,
+  email: string,
+  token: string,
+): Promise<{ ok: boolean; error?: string; rateLimited?: boolean }> {
+  const base = siteUrl ?? "https://arinkolab.com/apps/kakeibo";
+  const verifyUrl = `${base}/?verify=${token}`;
+  const from = mailFrom ?? "おさいふノート <noreply@arinkolab.com>";
+
+  return sendMail(resendApiKey, from, {
+    to: email,
+    subject: "【おさいふノート】メールアドレスの確認",
+    html: [
+      "<p>おさいふノートへのご登録ありがとうございます。</p>",
+      "<p>以下のボタンをクリックして、メールアドレスを確認してください。</p>",
+      `<p style="text-align:center;margin:24px 0;">`,
+      `<a href="${verifyUrl}" style="background:#e07b00;color:#fff;padding:12px 32px;border-radius:6px;text-decoration:none;font-weight:bold;">メールアドレスを確認する</a>`,
+      `</p>`,
+      "<p>ボタンが押せない場合は、以下のURLをブラウザに貼り付けてください：</p>",
+      `<p style="word-break:break-all;color:#555;">${verifyUrl}</p>`,
+      "<p>このリンクは <strong>24時間</strong> 有効です。</p>",
+      "<p>心当たりがない場合は、このメールを無視してください。</p>",
+      "<hr>",
+      "<p style=\"font-size:0.85em;color:#888;\">おさいふノート — arinkolab.com</p>",
+    ].join("\n"),
+  });
+}
+
+/** GET /api/auth/verify-email?token=TOKEN */
+export async function handleVerifyEmail(
+  db: D1Database,
+  secret: string,
+  request: Request,
+): Promise<Response> {
+  const url = new URL(request.url);
+  const token = url.searchParams.get("token") ?? "";
+
+  if (!token) return json({ error: "トークンが指定されていません" }, 400);
+
+  const row = await db
+    .prepare("SELECT user_id, expires_at FROM email_verification_tokens WHERE token = ?")
+    .bind(token)
+    .first<{ user_id: string; expires_at: string }>();
+
+  if (!row) return json({ error: "無効な確認リンクです" }, 400);
+
+  if (new Date(row.expires_at) < new Date()) {
+    await db.prepare("DELETE FROM email_verification_tokens WHERE token = ?").bind(token).run();
+    return json({ error: "確認リンクの有効期限が切れています。再度登録をお試しください。" }, 400);
+  }
+
+  // 確認済みに更新
+  await db
+    .prepare("UPDATE users SET email_verified = 1 WHERE user_id = ?")
+    .bind(row.user_id)
+    .run();
+  await db.prepare("DELETE FROM email_verification_tokens WHERE token = ?").bind(token).run();
+
+  // 自動ログイン用トークンを発行
+  const authToken = await issueToken(row.user_id, secret);
+  const user = await db
+    .prepare("SELECT email, username FROM users WHERE user_id = ?")
+    .bind(row.user_id)
+    .first<{ email: string; username: string | null }>();
+  const displayName = user?.username ?? user?.email.split("@")[0] ?? "";
+
+  return json({ ok: true, token: authToken, userId: row.user_id, displayName });
+}
+
+/** POST /api/auth/resend-verification */
+export async function handleResendVerification(
+  db: D1Database,
+  request: Request,
+  resendApiKey?: string,
+  mailFrom?: string,
+  siteUrl?: string,
+): Promise<Response> {
+  let body: { email?: unknown };
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: "Invalid JSON" }, 400);
+  }
+
+  const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  if (!email || !EMAIL_RE.test(email)) {
+    return json({ error: "有効なメールアドレスを入力してください" }, 400);
+  }
+
+  const user = await db
+    .prepare("SELECT user_id, email_verified FROM users WHERE email = ?")
+    .bind(email)
+    .first<{ user_id: string; email_verified: number }>();
+
+  // セキュリティ：存在しなくても同じレスポンス
+  if (!user || user.email_verified === 1) {
+    return json({ ok: true });
+  }
+
+  const token = await createVerificationToken(db, user.user_id);
+  const result = await sendVerificationEmail(resendApiKey, mailFrom, siteUrl, email, token);
+  if (!result.ok) {
+    return json({ error: result.error }, result.rateLimited ? 429 : 500);
+  }
+
+  return json({ ok: true });
 }
 
 /** POST /api/auth/reset-request */
@@ -383,7 +534,7 @@ export async function handleLogin(
   }
 
   const user = await db
-    .prepare("SELECT user_id, email, password_hash, username FROM users WHERE email = ?")
+    .prepare("SELECT user_id, email, password_hash, username, email_verified FROM users WHERE email = ?")
     .bind(email)
     .first<UserRow>();
 
@@ -394,6 +545,11 @@ export async function handleLogin(
 
   if (!user || !passwordOk) {
     return json({ error: "メールアドレスまたはパスワードが正しくありません" }, 401);
+  }
+
+  // メールアドレス未確認チェック
+  if (user.email_verified === 0) {
+    return json({ error: "メールアドレスの確認が完了していません。登録時に送信した確認メールをご確認ください。", unverified: true }, 403);
   }
 
   const token = await issueToken(user.user_id, secret);

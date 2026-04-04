@@ -1,6 +1,6 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AggregateTab } from "./AggregateTab";
-import { fetchMonthlyDataset, saveMonthly, updateCategory } from "./api";
+import { fetchMonthlyDataset, saveMonthly, updateCategory, verifyEmail } from "./api";
 import { CategoryManager } from "./CategoryManager";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { downloadCsvWithPicker, generateEntriesCsv } from "./csvUtils";
@@ -45,6 +45,57 @@ interface ModalState {
 
 export function App() {
   const { token, userId, displayName, login, logout, updateDisplayName } = useAuth();
+  const [verifyState, setVerifyState] = useState<"idle" | "verifying" | "success" | "error">("idle");
+  const [verifyMsg, setVerifyMsg] = useState("");
+
+  // URLの ?verify= パラメータを検知してメール確認を実行
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const verifyToken = params.get("verify");
+    if (!verifyToken) return;
+
+    // URLからトークンを除去
+    const url = new URL(window.location.href);
+    url.searchParams.delete("verify");
+    window.history.replaceState({}, "", url.toString());
+
+    setVerifyState("verifying");
+    verifyEmail(verifyToken).then((res) => {
+      if ("error" in res) {
+        setVerifyState("error");
+        setVerifyMsg(res.error);
+      } else {
+        setVerifyState("success");
+        // 確認成功 → 自動ログイン
+        login(res.token, res.userId, res.displayName);
+      }
+    });
+  }, []);
+
+  // メール確認中/結果表示
+  if (verifyState === "verifying") {
+    return (
+      <div className="login-screen">
+        <div className="login-card" style={{ textAlign: "center" }}>
+          <h1 className="login-brand">おさいふノート</h1>
+          <p>メールアドレスを確認中...</p>
+        </div>
+      </div>
+    );
+  }
+  if (verifyState === "error") {
+    return (
+      <div className="login-screen">
+        <div className="login-card" style={{ textAlign: "center" }}>
+          <h1 className="login-brand">おさいふノート</h1>
+          <p className="login-error">{verifyMsg}</p>
+          <button className="btn-text-link" onClick={() => setVerifyState("idle")}>
+            ログイン画面へ
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Show login screen when not authenticated
   if (!token || !userId) {

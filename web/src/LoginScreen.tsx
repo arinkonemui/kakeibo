@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { authLogin, authRegister } from "./api";
+import { authLogin, authRegister, resendVerification } from "./api";
 import { PasswordResetModal } from "./PasswordResetModal";
 
 type Mode = "login" | "register";
@@ -16,31 +16,104 @@ export function LoginScreen({ onLogin }: Props) {
   const [username, setUsername] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // 確認メール送信済み状態
+  const [pendingVerification, setPendingVerification] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState("");
+  // 未確認エラー（ログイン時）
+  const [unverified, setUnverified] = useState(false);
+  // 再送信状態
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMsg, setResendMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   function switchMode(m: Mode) {
     setMode(m);
     setError(null);
+    setUnverified(false);
+    setResendMsg(null);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setUnverified(false);
     setLoading(true);
 
     try {
-      const result =
-        mode === "register"
-          ? await authRegister(email, password, username || undefined)
-          : await authLogin(email, password);
-
-      if ("error" in result) {
-        setError(result.error);
+      if (mode === "register") {
+        const result = await authRegister(email, password, username || undefined);
+        if ("error" in result) {
+          setError(result.error);
+        } else if ("pendingVerification" in result) {
+          setPendingEmail(email);
+          setPendingVerification(true);
+        } else {
+          onLogin(result.token, result.userId, result.displayName);
+        }
       } else {
-        onLogin(result.token, result.userId, result.displayName);
+        const result = await authLogin(email, password);
+        if ("error" in result) {
+          setError(result.error);
+          if (result.unverified) setUnverified(true);
+        } else {
+          onLogin(result.token, result.userId, result.displayName);
+        }
       }
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleResend(targetEmail: string) {
+    setResendMsg(null);
+    setResendLoading(true);
+    const res = await resendVerification(targetEmail);
+    setResendLoading(false);
+    if ("error" in res) {
+      setResendMsg({ ok: false, text: res.error });
+    } else {
+      setResendMsg({ ok: true, text: "確認メールを再送しました。メールをご確認ください。" });
+    }
+  }
+
+  // 確認メール送信済み画面
+  if (pendingVerification) {
+    return (
+      <div className="login-screen">
+        <div className="login-card">
+          <h1 className="login-brand">おさいふノート</h1>
+          <div className="verify-pending">
+            <div className="verify-pending-icon">✉️</div>
+            <h2>確認メールを送信しました</h2>
+            <p>
+              <strong>{pendingEmail}</strong> に確認メールを送りました。<br />
+              メール内のリンクをクリックしてメールアドレスを確認してください。
+            </p>
+            <p className="verify-pending-note">
+              メールが届かない場合は迷惑メールフォルダもご確認ください。
+            </p>
+            {resendMsg && (
+              <p className={resendMsg.ok ? "profile-msg-ok" : "profile-msg-err"}>
+                {resendMsg.text}
+              </p>
+            )}
+            <button
+              className="btn-text-link"
+              onClick={() => handleResend(pendingEmail)}
+              disabled={resendLoading}
+            >
+              {resendLoading ? "送信中..." : "確認メールを再送する"}
+            </button>
+            <button
+              className="btn-text-link"
+              style={{ marginTop: "0.5rem", color: "#888" }}
+              onClick={() => { setPendingVerification(false); switchMode("login"); }}
+            >
+              ログイン画面に戻る
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -109,7 +182,29 @@ export function LoginScreen({ onLogin }: Props) {
             </div>
           )}
 
-          {error && <p className="login-error">{error}</p>}
+          {error && (
+            <div>
+              <p className="login-error">{error}</p>
+              {unverified && (
+                <div className="verify-resend-box">
+                  {resendMsg ? (
+                    <p className={resendMsg.ok ? "profile-msg-ok" : "profile-msg-err"}>
+                      {resendMsg.text}
+                    </p>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn-text-link"
+                      onClick={() => handleResend(email)}
+                      disabled={resendLoading}
+                    >
+                      {resendLoading ? "送信中..." : "確認メールを再送する"}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           <button className="btn-primary login-submit" type="submit" disabled={loading}>
             {loading ? "処理中..." : mode === "login" ? "ログイン" : "登録して始める"}

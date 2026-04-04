@@ -235,11 +235,20 @@ export interface AuthResponse {
   displayName: string;
 }
 
+export type RegisterResult =
+  | AuthResponse
+  | { pendingVerification: true }
+  | { error: string };
+
+export type LoginResult =
+  | AuthResponse
+  | { error: string; unverified?: boolean };
+
 export async function authRegister(
   email: string,
   password: string,
   username?: string,
-): Promise<AuthResponse | { error: string }> {
+): Promise<RegisterResult> {
   const res = await fetch(apiUrl("/api/auth/register"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -249,13 +258,13 @@ export async function authRegister(
   if (!res.ok) {
     return { error: (body as { error?: string }).error ?? `HTTP ${res.status}` };
   }
-  return body as AuthResponse;
+  return body as RegisterResult;
 }
 
 export async function authLogin(
   email: string,
   password: string,
-): Promise<AuthResponse | { error: string }> {
+): Promise<LoginResult> {
   const res = await fetch(apiUrl("/api/auth/login"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -263,9 +272,38 @@ export async function authLogin(
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
+    return {
+      error: (body as { error?: string }).error ?? `HTTP ${res.status}`,
+      unverified: (body as { unverified?: boolean }).unverified,
+    };
+  }
+  return body as AuthResponse;
+}
+
+export async function verifyEmail(
+  token: string,
+): Promise<AuthResponse | { error: string }> {
+  const res = await fetch(apiUrl(`/api/auth/verify-email?token=${encodeURIComponent(token)}`));
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
     return { error: (body as { error?: string }).error ?? `HTTP ${res.status}` };
   }
   return body as AuthResponse;
+}
+
+export async function resendVerification(
+  email: string,
+): Promise<{ ok: true } | { error: string }> {
+  const res = await fetch(apiUrl("/api/auth/resend-verification"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { error: (body as { error?: string }).error ?? `HTTP ${res.status}` };
+  }
+  return { ok: true };
 }
 
 export async function updateProfile(patch: {
