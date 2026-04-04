@@ -30,7 +30,7 @@ export function PasswordResetModal({ onClose, onSuccess }: Props) {
     } else {
       setMessage({
         ok: true,
-        text: "リセットコードをメールで送信しました。コンソールで確認してください。",
+        text: "リセットコードをメールで送信しました。メールが届かない場合は迷惑メールフォルダもご確認ください。",
       });
       setTimeout(() => setStage("token"), 1500);
     }
