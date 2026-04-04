@@ -5,6 +5,7 @@
  */
 
 import { deriveUserId, hashPassword, issueToken, verifyPassword } from "./auth";
+import { sendMail } from "./mail";
 
 export interface AuthEnvWithSecret {
   DB: D1Database;
@@ -95,6 +96,8 @@ export async function handleRegister(
 export async function handleResetRequest(
   db: D1Database,
   request: Request,
+  resendApiKey?: string,
+  mailFrom?: string,
 ): Promise<Response> {
   let body: { email?: unknown };
   try {
@@ -137,8 +140,30 @@ export async function handleResetRequest(
     .bind(token, user.user_id, expiresAt)
     .run();
 
-  // デモ用：トークンをコンソール出力（実本番ではメール送信）
-  console.log(`[Password Reset] Email: ${email}, Token: ${token}`);
+  // メール送信
+  const from = mailFrom ?? "おさいふノート <noreply@arinkolab.com>";
+  const result = await sendMail(resendApiKey, from, {
+    to: email,
+    subject: "【おさいふノート】パスワードリセット",
+    html: [
+      "<p>パスワードリセットのリクエストを受け付けました。</p>",
+      "<p>以下のリセットコードを画面に入力してください。</p>",
+      `<p style="font-size:1.5em;font-weight:bold;letter-spacing:0.1em;background:#f5f5f5;padding:12px;text-align:center;">${token}</p>`,
+      "<p>このコードは <strong>15分間</strong> 有効です。</p>",
+      "<p>心当たりがない場合は、このメールを無視してください。</p>",
+      "<hr>",
+      "<p style=\"font-size:0.85em;color:#888;\">おさいふノート — arinkolab.com</p>",
+    ].join("\n"),
+  });
+
+  if (!result.ok) {
+    // DB にトークンは保存済みだが、メール送信失敗 → トークンを削除してエラーを返す
+    await db
+      .prepare("DELETE FROM password_reset_tokens WHERE token = ?")
+      .bind(token)
+      .run();
+    return json({ error: result.error }, result.rateLimited ? 429 : 500);
+  }
 
   return json({ ok: true });
 }

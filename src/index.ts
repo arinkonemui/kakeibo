@@ -16,6 +16,10 @@ export interface Env extends AuthEnv {
   BASE_PATH?: string;
   /** 静的アセット配信バインディング（[assets] 設定時に自動付与） */
   ASSETS?: { fetch(req: Request): Promise<Response> };
+  /** Resend API キー（メール送信用） */
+  RESEND_API_KEY?: string;
+  /** メール送信元アドレス（例: "おさいふノート <noreply@arinkolab.com>"） */
+  MAIL_FROM?: string;
 }
 
 // --- Types ---
@@ -180,33 +184,10 @@ export default {
       return handleLogin(env.DB, env.AUTH_SECRET, request);
     }
     if (pathname === "/api/auth/reset-request" && request.method === "POST") {
-      return handleResetRequest(env.DB, request);
+      return handleResetRequest(env.DB, request, env.RESEND_API_KEY, env.MAIL_FROM);
     }
     if (pathname === "/api/auth/reset-password" && request.method === "POST") {
       return handleResetPassword(env.DB, request);
-    }
-
-    // DEBUG: auth状態確認（ローカル開発用、削除予定）
-    if (pathname === "/api/auth/debug-token") {
-      const authHeader = request.headers.get("Authorization") ?? "(none)";
-      const hasSecret = !!env.AUTH_SECRET;
-      const devMode = env.DEV_MODE ?? "(undefined)";
-      let verifyResult = "not tried";
-      if (authHeader.startsWith("Bearer ") && env.AUTH_SECRET) {
-        try {
-          const { getAuthUserId: _auth } = await import("./auth");
-          const uid = await _auth(request, env);
-          verifyResult = `OK: ${uid}`;
-        } catch (e) {
-          verifyResult = `FAIL: ${e instanceof Error ? e.message : String(e)}`;
-        }
-      }
-      return new Response(JSON.stringify({
-        authHeader: authHeader.substring(0, 30) + "...",
-        hasSecret,
-        devMode,
-        verifyResult,
-      }, null, 2), { headers: { "Content-Type": "application/json" } });
     }
 
     // --- Auth: derive user_id from request ---
