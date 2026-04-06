@@ -16,6 +16,8 @@ interface Props {
   height?: number;
   /** Optional horizontal reference line (e.g. daily budget) */
   budgetLine?: number | null;
+  /** Optional daily average reference line */
+  avgLine?: number | null;
 }
 
 /**
@@ -37,6 +39,7 @@ export function LineChart({
   width = 600,
   height = 220,
   budgetLine = null,
+  avgLine = null,
 }: Props) {
   const pad = { top: 16, right: 16, bottom: 28, left: 72 };
   const plotW = width - pad.left - pad.right;
@@ -53,6 +56,7 @@ export function LineChart({
   const maxVal = Math.max(
     ...points.map((p) => p.value),
     budgetLine ?? 0,
+    avgLine ?? 0,
     1,
   );
   const yMax = niceMax(maxVal);
@@ -89,6 +93,7 @@ export function LineChart({
   }
 
   const budgetY = budgetLine != null ? toY(budgetLine) : null;
+  const avgY = avgLine != null ? toY(avgLine) : null;
 
   return (
     <div className="agg-line-wrapper">
@@ -167,6 +172,30 @@ export function LineChart({
               fill="#ff6b6b"
             >
               日予算 ¥{budgetLine.toLocaleString("ja-JP")}
+            </text>
+          </>
+        )}
+
+        {/* Daily average reference line */}
+        {avgY != null && avgLine != null && avgLine > 0 && (
+          <>
+            <line
+              x1={pad.left}
+              y1={avgY}
+              x2={width - pad.right}
+              y2={avgY}
+              stroke="#4fc3f7"
+              strokeWidth={1.5}
+              strokeDasharray="6 3"
+            />
+            <text
+              x={pad.left}
+              y={avgY - 4}
+              textAnchor="start"
+              fontSize={10}
+              fill="#4fc3f7"
+            >
+              日平均 ¥{avgLine.toLocaleString("ja-JP")}
             </text>
           </>
         )}

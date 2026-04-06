@@ -745,6 +745,7 @@ function AppInner({
                     .filter((e) => e.type === "expense")
                     .reduce((s, e) => s + e.amount, 0);
                   const grandTotal = fixedTotal + expenseTotal;
+                  const balance = incomeFixed - grandTotal;
                   return (
                     <span className="table-summary">
                       固定費: <strong>¥{fixedTotal.toLocaleString("ja-JP")}</strong>
@@ -754,6 +755,10 @@ function AppInner({
                       総支出額: <strong>¥{grandTotal.toLocaleString("ja-JP")}</strong>
                       <span style={{ display: "inline-block", width: "2em" }} />
                       総収入額: <strong>¥{incomeFixed.toLocaleString("ja-JP")}</strong>
+                      <span style={{ display: "inline-block", width: "2em" }} />
+                      収支差額: <strong style={{ color: balance >= 0 ? "#27ae60" : "#e74c3c" }}>
+                        ¥{Math.abs(balance).toLocaleString("ja-JP")}
+                      </strong>
                     </span>
                   );
                 })()}

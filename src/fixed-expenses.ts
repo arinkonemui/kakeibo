@@ -5,7 +5,7 @@
  */
 
 const VALID_ICON_KEYS = new Set([
-  "home", "flame", "faucet", "bulb", "phone", "train", "monitor", "clothes", "cosmetics", "furniture", "car", "food", "cafe",
+  "home", "flame", "faucet", "bulb", "phone", "smartphone", "train", "monitor", "clothes", "cosmetics", "furniture", "car", "building", "food", "cafe",
   "video", "book", "music", "education", "game", "custom"
 ]);
 
@@ -16,7 +16,7 @@ const DEFAULTS = [
   { name: "ガス",   icon_key: "flame",  sort_order: 1 },
   { name: "水道",   icon_key: "faucet", sort_order: 2 },
   { name: "電気",   icon_key: "bulb",   sort_order: 3 },
-  { name: "通信費", icon_key: "phone",  sort_order: 4 },
+  { name: "スマホ", icon_key: "smartphone", sort_order: 4 },
 ] as const;
 
 function errorResponse(status: number, message: string): Response {

@@ -100,20 +100,21 @@ export function LoginScreen({ onLogin }: Props) {
                 {resendMsg.text}
               </p>
             )}
-            <button
-              className="btn-text-link"
-              onClick={() => handleResend(pendingEmail)}
-              disabled={resendLoading}
-            >
-              {resendLoading ? "送信中..." : "確認メールを再送する"}
-            </button>
-            <button
-              className="btn-text-link"
-              style={{ marginTop: "0.5rem", color: "#888" }}
-              onClick={() => { setPendingVerification(false); switchMode("login"); }}
-            >
-              ログイン画面に戻る
-            </button>
+            <div className="verify-pending-actions">
+              <button
+                className="btn-secondary"
+                onClick={() => handleResend(pendingEmail)}
+                disabled={resendLoading}
+              >
+                {resendLoading ? "送信中..." : "確認メールを再送する"}
+              </button>
+              <button
+                className="btn-text-link"
+                onClick={() => { setPendingVerification(false); switchMode("login"); }}
+              >
+                ログイン画面に戻る
+              </button>
+            </div>
           </div>
         ) : (
           <>

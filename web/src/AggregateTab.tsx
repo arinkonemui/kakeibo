@@ -120,6 +120,14 @@ export function AggregateTab({ data, monthKey, localEntries, fxExpenseItems, fxI
     [dailyTotals],
   );
 
+  // Daily average (total expense / number of days with spending)
+  const dailyAvg = useMemo(() => {
+    const activeDays = linePoints.filter((p) => p.value > 0);
+    if (activeDays.length === 0) return null;
+    const total = activeDays.reduce((s, p) => s + p.value, 0);
+    return Math.round(total / activeDays.length);
+  }, [linePoints]);
+
   const hasData = localEntries.length > 0;
 
   return (
@@ -375,6 +383,7 @@ export function AggregateTab({ data, monthKey, localEntries, fxExpenseItems, fxI
           <LineChart
             points={linePoints}
             budgetLine={defaultDayBudget}
+            avgLine={dailyAvg}
           />
         ) : (
           <p className="empty-message">この月のデータはまだありません</p>

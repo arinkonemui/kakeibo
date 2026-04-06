@@ -882,6 +882,32 @@ body {
   margin: 0.5rem 0;
   text-align: center;
 }
+.verify-pending-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 1.25rem;
+}
+.btn-secondary {
+  display: inline-block;
+  padding: 10px 24px;
+  border: 2px solid var(--color-primary);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--color-primary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-secondary:hover {
+  background: var(--color-warm);
+}
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 .btn-forgot-password {
   width: 100%;
