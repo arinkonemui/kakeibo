@@ -23,6 +23,7 @@ body {
   background: var(--color-paper);
   color: var(--color-text);
   line-height: 1.5;
+  min-width: 1140px;
 }
 
 /* --- App Layout --- */
