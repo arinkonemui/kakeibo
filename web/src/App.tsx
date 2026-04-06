@@ -645,8 +645,6 @@ function AppInner({
           onChange={(e) => guardedSetMonthKey(e.target.value)}
         />
 
-        <button onClick={() => guardedSetMonthKey(currentMonthKey())}>今月</button>
-
         <button
           onClick={() => {
             const [y, m] = monthKey.split("-").map(Number);
