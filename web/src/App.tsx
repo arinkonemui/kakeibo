@@ -761,7 +761,7 @@ function AppInner({
                   );
                 })()}
                 <button className="btn-open-cat" onClick={() => setCatManagerOpen(true)}>
-                  ⚙ カテゴリ管理
+                  カテゴリ管理
                 </button>
               </div>
             </div>
