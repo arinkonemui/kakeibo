@@ -746,13 +746,13 @@ function AppInner({
                   const balance = incomeFixed - grandTotal;
                   return (
                     <span className="table-summary">
+                      収入額: <strong>¥{incomeFixed.toLocaleString("ja-JP")}</strong>
+                      <span style={{ display: "inline-block", width: "2em" }} />
                       固定費: <strong>¥{fixedTotal.toLocaleString("ja-JP")}</strong>
                       {" / "}
-                      支出: <strong>¥{expenseTotal.toLocaleString("ja-JP")}</strong>
+                      支出額: <strong>¥{expenseTotal.toLocaleString("ja-JP")}</strong>
                       {" / "}
                       総支出額: <strong>¥{grandTotal.toLocaleString("ja-JP")}</strong>
-                      <span style={{ display: "inline-block", width: "2em" }} />
-                      総収入額: <strong>¥{incomeFixed.toLocaleString("ja-JP")}</strong>
                       <span style={{ display: "inline-block", width: "2em" }} />
                       収支差額: <strong style={{ color: balance >= 0 ? "#27ae60" : "#e74c3c" }}>
                         ¥{Math.abs(balance).toLocaleString("ja-JP")}
