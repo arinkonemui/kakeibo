@@ -23,7 +23,12 @@ body {
   background: var(--color-paper);
   color: var(--color-text);
   line-height: 1.5;
-  min-width: 1140px;
+}
+
+@media (min-width: 769px) {
+  body {
+    min-width: 1140px;
+  }
 }
 
 /* --- App Layout --- */
@@ -1957,4 +1962,313 @@ body {
   font-weight: 600;
 }
 
+/* ============================================================
+   Mobile Layout  (max-width: 768px)
+   ============================================================ */
+@media (max-width: 768px) {
+  .app {
+    padding: 8px;
+  }
 
+  .app-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .catchphrase {
+    font-size: 0.8rem;
+  }
+
+  .tab-bar {
+    gap: 0;
+  }
+
+  .tab-item {
+    font-size: 0.78rem;
+    padding: 6px 8px;
+  }
+
+  .month-selector {
+    gap: 6px;
+  }
+
+  .month-selector button {
+    font-size: 0.8rem;
+    padding: 6px 10px;
+  }
+
+  .month-selector input[type="month"] {
+    font-size: 0.8rem;
+    padding: 4px 6px;
+  }
+
+  /* --- Mobile summary bar --- */
+  .mobile-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .mobile-summary-bar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    background: #fff;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 10px 10px;
+    gap: 8px;
+    box-sizing: border-box;
+    width: 100%;
+  }
+
+  .mobile-summary-amounts {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .mobile-summary-row {
+    font-size: 0.8rem;
+    color: var(--color-text);
+    white-space: nowrap;
+  }
+
+  .mobile-summary-row strong {
+    font-weight: 600;
+  }
+
+  .mobile-summary-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .btn-mobile-panel {
+    background: var(--color-accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .btn-mobile-panel:active {
+    opacity: 0.8;
+  }
+
+  /* --- Mobile day view --- */
+  .mobile-day-view {
+    background: #fff;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  /* ツールバーは縦積み: カテゴリ管理ボタン → 日付ナビ */
+  .mobile-day-toolbar {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--color-border);
+    gap: 6px;
+  }
+
+  .mobile-day-toolbar .btn-open-cat {
+    width: 100%;
+    text-align: center;
+  }
+
+  .mobile-day-nav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .mobile-nav-btn {
+    background: none;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 4px 6px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    color: var(--color-text);
+    white-space: nowrap;
+    min-width: 44px;
+    flex: 1;
+    text-align: center;
+  }
+
+  .mobile-nav-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  .mobile-nav-center {
+    position: relative;
+    flex: 1.4;
+    display: flex;
+    justify-content: center;
+  }
+
+  .mobile-nav-current {
+    background: var(--color-accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    width: 100%;
+  }
+
+  /* --- Calendar popup --- */
+  .mobile-cal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+  }
+
+  .mobile-calendar-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 301;
+    background: #fff;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    padding: 10px;
+    width: min(224px, calc(100vw - 32px));
+    animation: modal-pop 0.18s ease-out;
+  }
+
+  .mobile-calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    margin-bottom: 4px;
+  }
+
+  .mobile-cal-wd {
+    text-align: center;
+    font-size: 0.7rem;
+    color: #888;
+    padding: 2px 0;
+  }
+
+  .mobile-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+  }
+
+  .mobile-cal-cell {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    font-size: 0.78rem;
+    border: none;
+    border-radius: 50%;
+    background: none;
+    cursor: pointer;
+    color: var(--color-text);
+    padding: 0;
+    margin: 0 auto;
+  }
+
+  .mobile-cal-empty {
+    cursor: default;
+  }
+
+  .mobile-cal-selected {
+    background: var(--color-accent);
+    color: #fff;
+  }
+
+  .mobile-cal-dot {
+    position: absolute;
+    bottom: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--color-accent);
+  }
+
+  .mobile-cal-selected .mobile-cal-dot {
+    background: #fff;
+  }
+
+  /* --- Category table --- */
+  .mobile-cat-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+
+  .mobile-cat-row {
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .mobile-cat-row--editable {
+    cursor: pointer;
+  }
+
+  .mobile-cat-row--editable:active {
+    background: var(--color-hover, #fff8f0);
+  }
+
+  .mobile-cat-name {
+    padding: 10px 12px;
+    font-weight: 500;
+    width: 55%;
+  }
+
+  .mobile-cat-amount {
+    padding: 10px 12px;
+    text-align: right;
+    color: var(--color-text);
+  }
+
+  .mobile-cat-total-row {
+    background: var(--color-paper);
+    border-top: 2px solid var(--color-border);
+  }
+
+  .mobile-cat-total-row .mobile-cat-name,
+  .mobile-cat-total-row .mobile-cat-amount {
+    font-weight: 700;
+  }
+
+  .mobile-cat-empty {
+    padding: 16px;
+    text-align: center;
+    color: #aaa;
+    font-size: 0.85rem;
+  }
+
+  /* --- Mobile fixed panel modal actions --- */
+  .mobile-fixed-modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--color-border);
+  }
+}

@@ -19,8 +19,11 @@ import type { CreateEntryOp, EntryRow, MonthlyDataset, UpdateEntryOp } from "./t
 import { WeeklyTable } from "./WeeklyTable";
 import { useAuth } from "./useAuth";
 import { useFixedExpenses } from "./useFixedExpenses";
+import { useIsMobile } from "./useIsMobile";
 import { useMonthly } from "./useMonthly";
 import { useOpsQueue } from "./useOpsQueue";
+import { MobileMonthlyView } from "./MobileMonthlyView";
+import { MobileFixedPanelModal } from "./MobileFixedPanelModal";
 
 /** Get current month as YYYY-MM */
 function currentMonthKey(): string {
@@ -121,6 +124,10 @@ function AppInner({
 
   // Tab state
   const [activeTab, setActiveTab] = useState<TabId>("monthly");
+
+  // Mobile
+  const isMobile = useIsMobile();
+  const [mobileFixedType, setMobileFixedType] = useState<"expense" | "income" | null>(null);
 
   // Modal state
   const [modal, setModal] = useState<ModalState | null>(null);
@@ -604,7 +611,7 @@ function AppInner({
       <header className="app-header">
         <h1>おさいふノート</h1>
         <p className="catchphrase">
-          1か月を一目で見渡す。 見開きカレンダー型のシンプル家計簿。
+          1か月を一目で見渡す。<br />見開きカレンダー型のシンプル家計簿。
         </p>
         {displayName && (
           <div className="app-user-bar">
@@ -721,73 +728,123 @@ function AppInner({
       {!archive && loading && <p className="status">読み込み中…</p>}
       {!archive && error && <p className="status error">エラー: {error}</p>}
 
-      {(activeTab === "monthly" || activeTab === "weekly") && (
-        <div className="table-with-panel">
-          <FixedExpensesPanel
-            fx={fx}
-            onManageExpense={() => { setFeManagerInitialTab("expense"); setFeManagerOpen(true); }}
-            onManageIncome={() => { setFeManagerInitialTab("income"); setFeManagerOpen(true); }}
-          />
-          <div className="table-main-area">
-            <div className="table-toolbar">
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                {effectiveData && (() => {
-                  const calcFx = (items: typeof fx.expenseItems) => items.reduce((s, i) => {
-                    const draft = fx.draftAmounts[i.fixed_expense_id] ?? "";
-                    const v = draft === "" ? 0 : parseInt(draft, 10);
-                    return s + (isNaN(v) ? 0 : v);
-                  }, 0);
-                  const fixedTotal = calcFx(fx.expenseItems);
-                  const incomeFixed = calcFx(fx.incomeItems);
-                  const expenseTotal = localEntries
-                    .filter((e) => e.type === "expense")
-                    .reduce((s, e) => s + e.amount, 0);
-                  const grandTotal = fixedTotal + expenseTotal;
-                  const balance = incomeFixed - grandTotal;
-                  return (
+      {(activeTab === "monthly" || activeTab === "weekly") && (() => {
+        const calcFx = (items: typeof fx.expenseItems) => items.reduce((s, i) => {
+          const draft = fx.draftAmounts[i.fixed_expense_id] ?? "";
+          const v = draft === "" ? 0 : parseInt(draft, 10);
+          return s + (isNaN(v) ? 0 : v);
+        }, 0);
+        const fixedTotal = calcFx(fx.expenseItems);
+        const incomeFixed = calcFx(fx.incomeItems);
+        const expenseTotal = localEntries
+          .filter((e) => e.type === "expense")
+          .reduce((s, e) => s + e.amount, 0);
+        const grandTotal = fixedTotal + expenseTotal;
+        const balance = incomeFixed - grandTotal;
+        const fmt = (n: number) => n.toLocaleString("ja-JP");
+
+        if (isMobile) {
+          return (
+            <div className="mobile-layout">
+              {/* Mobile summary bar */}
+              <div className="mobile-summary-bar">
+                <div className="mobile-summary-amounts">
+                  <div className="mobile-summary-row">
+                    <span>固定費: <strong>¥{fmt(fixedTotal)}</strong></span>
+                  </div>
+                  <div className="mobile-summary-row">
+                    <span>支出額: <strong>¥{fmt(expenseTotal)}</strong></span>
+                  </div>
+                  <div className="mobile-summary-row">
+                    <span>総支出額: <strong>¥{fmt(grandTotal)}</strong></span>
+                  </div>
+                  <div className="mobile-summary-row">
+                    <span>収入額: <strong>¥{fmt(incomeFixed)}</strong></span>
+                  </div>
+                  <div className="mobile-summary-row">
+                    <span>収支差額: <strong style={{ color: balance >= 0 ? "#27ae60" : "#e74c3c" }}>¥{fmt(Math.abs(balance))}</strong></span>
+                  </div>
+                </div>
+                <div className="mobile-summary-buttons">
+                  <button className="btn-mobile-panel" onClick={() => setMobileFixedType("expense")}>
+                    固定費一覧
+                  </button>
+                  <button className="btn-mobile-panel" onClick={() => setMobileFixedType("income")}>
+                    収入一覧
+                  </button>
+                </div>
+              </div>
+
+              {/* Mobile day view */}
+              {effectiveData && (
+                <MobileMonthlyView
+                  data={effectiveData}
+                  monthKey={effectiveMonthKey}
+                  localEntries={localEntries}
+                  editable={editable}
+                  onCellClick={handleCellClick}
+                  onOpenCatManager={() => setCatManagerOpen(true)}
+                />
+              )}
+            </div>
+          );
+        }
+
+        // PC layout
+        return (
+          <div className="table-with-panel">
+            <FixedExpensesPanel
+              fx={fx}
+              onManageExpense={() => { setFeManagerInitialTab("expense"); setFeManagerOpen(true); }}
+              onManageIncome={() => { setFeManagerInitialTab("income"); setFeManagerOpen(true); }}
+            />
+            <div className="table-main-area">
+              <div className="table-toolbar">
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  {effectiveData && (
                     <span className="table-summary">
-                      収入額: <strong>¥{incomeFixed.toLocaleString("ja-JP")}</strong>
+                      収入額: <strong>¥{fmt(incomeFixed)}</strong>
                       <span style={{ display: "inline-block", width: "2em" }} />
-                      固定費: <strong>¥{fixedTotal.toLocaleString("ja-JP")}</strong>
+                      固定費: <strong>¥{fmt(fixedTotal)}</strong>
                       {" / "}
-                      支出額: <strong>¥{expenseTotal.toLocaleString("ja-JP")}</strong>
+                      支出額: <strong>¥{fmt(expenseTotal)}</strong>
                       {" / "}
-                      総支出額: <strong>¥{grandTotal.toLocaleString("ja-JP")}</strong>
+                      総支出額: <strong>¥{fmt(grandTotal)}</strong>
                       <span style={{ display: "inline-block", width: "2em" }} />
                       収支差額: <strong style={{ color: balance >= 0 ? "#27ae60" : "#e74c3c" }}>
-                        ¥{Math.abs(balance).toLocaleString("ja-JP")}
+                        ¥{fmt(Math.abs(balance))}
                       </strong>
                     </span>
-                  );
-                })()}
-                <button className="btn-open-cat" onClick={() => setCatManagerOpen(true)}>
-                  カテゴリ管理
-                </button>
+                  )}
+                  <button className="btn-open-cat" onClick={() => setCatManagerOpen(true)}>
+                    カテゴリ管理
+                  </button>
+                </div>
               </div>
+              {effectiveData && activeTab === "monthly" && (
+                <MonthlyTable
+                  data={effectiveData}
+                  monthKey={effectiveMonthKey}
+                  localEntries={localEntries}
+                  localDailyBudgets={localDailyBudgets}
+                  editable={editable}
+                  onCellClick={handleCellClick}
+                />
+              )}
+              {effectiveData && activeTab === "weekly" && (
+                <WeeklyTable
+                  data={effectiveData}
+                  monthKey={effectiveMonthKey}
+                  localEntries={localEntries}
+                  localDailyBudgets={localDailyBudgets}
+                  editable={editable}
+                  onCellClick={handleCellClick}
+                />
+              )}
             </div>
-            {effectiveData && activeTab === "monthly" && (
-              <MonthlyTable
-                data={effectiveData}
-                monthKey={effectiveMonthKey}
-                localEntries={localEntries}
-                localDailyBudgets={localDailyBudgets}
-                editable={editable}
-                onCellClick={handleCellClick}
-              />
-            )}
-            {effectiveData && activeTab === "weekly" && (
-              <WeeklyTable
-                data={effectiveData}
-                monthKey={effectiveMonthKey}
-                localEntries={localEntries}
-                localDailyBudgets={localDailyBudgets}
-                editable={editable}
-                onCellClick={handleCellClick}
-              />
-            )}
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {effectiveData && activeTab === "aggregate" && (
         <AggregateTab
@@ -919,6 +976,14 @@ function AppInner({
             setProfileOpen(false);
           }}
           onLogout={onLogout}
+        />
+      )}
+
+      {mobileFixedType && (
+        <MobileFixedPanelModal
+          type={mobileFixedType}
+          fx={fx}
+          onClose={() => setMobileFixedType(null)}
         />
       )}
     </div>
