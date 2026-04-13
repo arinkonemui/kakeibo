@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { requestPasswordReset, resetPassword } from "./api";
+import { useModalClose } from "./useModalClose";
 
 type Stage = "email" | "token";
 
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function PasswordResetModal({ onClose, onSuccess }: Props) {
+  const { closing, handleClose } = useModalClose(onClose);
   const [stage, setStage] = useState<Stage>("email");
   const [email, setEmail] = useState("");
   const [token, setToken] = useState("");
@@ -63,11 +65,11 @@ export function PasswordResetModal({ onClose, onSuccess }: Props) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay" onClick={handleClose}>
+      <div className={`modal-content${closing ? " closing" : ""}`} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h3>パスワードをリセット</h3>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" onClick={handleClose}>✕</button>
         </div>
 
         {stage === "email" && (
@@ -102,7 +104,7 @@ export function PasswordResetModal({ onClose, onSuccess }: Props) {
               <button
                 className="btn-cancel"
                 type="button"
-                onClick={onClose}
+                onClick={handleClose}
                 disabled={loading}
               >
                 キャンセル

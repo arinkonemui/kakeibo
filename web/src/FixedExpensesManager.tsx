@@ -5,6 +5,7 @@
 import { useState } from "react";
 import type { UseFixedExpensesReturn } from "./useFixedExpenses";
 import type { FixedExpenseRow } from "./types";
+import { useModalClose } from "./useModalClose";
 
 const ICON_MAP: Record<string, string> = {
   home:      "🏠",
@@ -63,6 +64,7 @@ interface Props {
 }
 
 export function FixedExpensesManager({ items, onClose, showConfirm, fx, initialTab }: Props) {
+  const { closing, handleClose } = useModalClose(onClose);
   const [tab, setTab] = useState<"expense" | "income">(initialTab ?? "expense");
   const [editId, setEditId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
@@ -143,11 +145,11 @@ export function FixedExpensesManager({ items, onClose, showConfirm, fx, initialT
   };
 
   return (
-    <div className="category-manager-overlay" onClick={onClose}>
-      <div className="category-manager" onClick={(e) => e.stopPropagation()}>
+    <div className="category-manager-overlay" onClick={handleClose}>
+      <div className={`category-manager${closing ? " closing" : ""}`} onClick={(e) => e.stopPropagation()}>
         <h3>
           固定費カテゴリ管理
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" onClick={handleClose}>✕</button>
         </h3>
 
         <div className="fe-manager-tabs">

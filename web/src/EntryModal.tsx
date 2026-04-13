@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { CreateEntryOp, EntryRow, UpdateEntryOp } from "./types";
+import { useModalClose } from "./useModalClose";
 
 const PAYMENT_METHODS = ["", "現金", "クレカ", "銀行引落", "QR", "その他"];
 
@@ -30,6 +31,7 @@ export function EntryModal({
   onDelete,
   onClose,
 }: Props) {
+  const { closing, handleClose } = useModalClose(onClose);
   // Which entry is being edited (null = 新規追加モード)
   const [editEntry, setEditEntry] = useState<EntryRow | null>(null);
 
@@ -94,11 +96,11 @@ export function EntryModal({
   const amountValid = !!amount && parseInt(amount, 10) > 0;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay" onClick={handleClose}>
+      <div className={`modal-content${closing ? " closing" : ""}`} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h3>{date} / {categoryName}</h3>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" onClick={handleClose}>✕</button>
         </div>
 
         {/* 明細一覧 */}

@@ -137,6 +137,10 @@ export function AggregateTab({ data, monthKey, localEntries, fxExpenseItems, fxI
         <h3 className="agg-section-title">月の集計サマリー</h3>
         <div className="agg-summary-grid">
           <div className="agg-summary-item">
+            <span className="agg-label">収入額</span>
+            <span className="agg-value">¥{fmt(incomeTotal)}</span>
+          </div>
+          <div className="agg-summary-item">
             <span className="agg-label">固定費</span>
             <span className="agg-value">¥{fmt(fixedExpenseTotal)}</span>
           </div>
@@ -145,12 +149,8 @@ export function AggregateTab({ data, monthKey, localEntries, fxExpenseItems, fxI
             <span className="agg-value">¥{fmt(summary.totalExpense)}</span>
           </div>
           <div className="agg-summary-item">
-            <span className="agg-label">支出総合計</span>
+            <span className="agg-label">総支出額</span>
             <span className="agg-value">¥{fmt(grandExpenseTotal)}</span>
-          </div>
-          <div className="agg-summary-item">
-            <span className="agg-label">収入額</span>
-            <span className="agg-value">¥{fmt(incomeTotal)}</span>
           </div>
           <div className="agg-summary-item">
             <span className="agg-label">収支差額</span>
@@ -160,10 +160,6 @@ export function AggregateTab({ data, monthKey, localEntries, fxExpenseItems, fxI
             >
               ¥{fmt(netBalance)}
             </span>
-          </div>
-          <div className="agg-summary-item">
-            <span className="agg-label">支出件数</span>
-            <span className="agg-value">{summary.expenseCount}件</span>
           </div>
         </div>
       </section>

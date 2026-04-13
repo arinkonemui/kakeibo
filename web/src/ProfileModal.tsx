@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { deleteAccount, updateProfile } from "./api";
 import { PasswordResetModal } from "./PasswordResetModal";
+import { useModalClose } from "./useModalClose";
 
 interface Props {
   displayName: string | null;
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function ProfileModal({ displayName, onClose, onUpdated, onLogout }: Props) {
+  const { closing, handleClose } = useModalClose(onClose);
   // ── ユーザー名 ──
   const [username, setUsername] = useState(displayName ?? "");
   const [usernameMsg, setUsernameMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -119,11 +121,11 @@ export function ProfileModal({ displayName, onClose, onUpdated, onLogout }: Prop
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content profile-modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay" onClick={handleClose}>
+      <div className={`modal-content profile-modal${closing ? " closing" : ""}`} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h3>アカウント設定</h3>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" onClick={handleClose}>✕</button>
         </div>
 
         <div className="profile-sections">

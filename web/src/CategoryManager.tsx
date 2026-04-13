@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createCategory, deleteCategory, updateCategory } from "./api";
 import type { CategoryRow } from "./types";
+import { useModalClose } from "./useModalClose";
 
 interface Props {
   categories: CategoryRow[];
@@ -89,13 +90,11 @@ export function CategoryManager({ categories, onClose, onRefetch, showConfirm }:
     onRefetch();
   };
 
-  const handleClose = () => {
-    onClose();
-  };
+  const { closing, handleClose } = useModalClose(onClose);
 
   return (
     <div className="category-manager-overlay" onClick={handleClose}>
-      <div className="category-manager" onClick={(e) => e.stopPropagation()}>
+      <div className={`category-manager${closing ? " closing" : ""}`} onClick={(e) => e.stopPropagation()}>
         <h3>
           カテゴリ管理
           <button className="modal-close" onClick={handleClose}>✕</button>
