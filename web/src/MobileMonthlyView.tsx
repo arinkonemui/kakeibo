@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import type { EntryRow, MonthlyDataset } from "./types";
 
 interface Props {
@@ -8,6 +8,7 @@ interface Props {
   editable: boolean;
   onCellClick: (date: string, categoryId: string) => void;
   onOpenCatManager: () => void;
+  onMonthChange: (monthKey: string) => void;
 }
 
 function buildCellMap(entries: EntryRow[]): Map<string, Map<string, number>> {
@@ -29,8 +30,14 @@ function daysInMonth(monthKey: string): number {
   return new Date(y!, m!, 0).getDate();
 }
 
-function toDateStr(monthKey: string, day: number): string {
-  return `${monthKey}-${String(day).padStart(2, "0")}`;
+function toDateStr(mk: string, day: number): string {
+  return `${mk}-${String(day).padStart(2, "0")}`;
+}
+
+function addMonths(monthKey: string, delta: number): string {
+  const [y, m] = monthKey.split("-").map(Number);
+  const d = new Date(y!, m! - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
 function fmt(n: number): string {
@@ -46,6 +53,7 @@ export function MobileMonthlyView({
   editable,
   onCellClick,
   onOpenCatManager,
+  onMonthChange,
 }: Props) {
   const initialDate = useMemo(() => {
     const today = new Date();
@@ -56,6 +64,20 @@ export function MobileMonthlyView({
 
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [calOpen, setCalOpen] = useState(false);
+  // カレンダー内で表示中の月（monthKey と独立して前後に動かせる）
+  const [calViewMonth, setCalViewMonth] = useState(monthKey);
+
+  // 親の monthKey が変わったら表示日・カレンダー月もリセット
+  useEffect(() => {
+    setSelectedDate(initialDate);
+    setCalViewMonth(monthKey);
+  }, [monthKey, initialDate]);
+
+  // カレンダーを開く時は今の monthKey から表示する
+  function openCalendar() {
+    setCalViewMonth(monthKey);
+    setCalOpen(true);
+  }
 
   const totalDays = daysInMonth(monthKey);
   const cellMap = useMemo(() => buildCellMap(localEntries), [localEntries]);
@@ -65,12 +87,27 @@ export function MobileMonthlyView({
   );
 
   const selectedDay = parseInt(selectedDate.split("-")[2]!, 10);
-  const monthNum = parseInt(monthKey.split("-")[1]!, 10);
 
-  const prevDay = selectedDay > 1 ? selectedDay - 1 : null;
-  const nextDay = selectedDay < totalDays ? selectedDay + 1 : null;
-  const prevDate = prevDay != null ? toDateStr(monthKey, prevDay) : null;
-  const nextDate = nextDay != null ? toDateStr(monthKey, nextDay) : null;
+  // 前日：月初の場合は前月末日
+  const prevMonthKey = addMonths(monthKey, -1);
+  const prevMonthLastDay = daysInMonth(prevMonthKey);
+  const hasPrev = true; // 常にナビ可能
+  const prevDate = selectedDay > 1
+    ? toDateStr(monthKey, selectedDay - 1)
+    : toDateStr(prevMonthKey, prevMonthLastDay);
+  const prevLabel = selectedDay > 1
+    ? `${parseInt(monthKey.split("-")[1]!)}/${selectedDay - 1}`
+    : `${parseInt(prevMonthKey.split("-")[1]!)}/${prevMonthLastDay}`;
+
+  // 翌日：月末の場合は翌月1日
+  const nextMonthKey = addMonths(monthKey, 1);
+  const hasNext = true; // 常にナビ可能
+  const nextDate = selectedDay < totalDays
+    ? toDateStr(monthKey, selectedDay + 1)
+    : toDateStr(nextMonthKey, 1);
+  const nextLabel = selectedDay < totalDays
+    ? `${parseInt(monthKey.split("-")[1]!)}/${selectedDay + 1}`
+    : `${parseInt(nextMonthKey.split("-")[1]!)}/1`;
 
   function dayLabel(dateStr: string): string {
     const d = new Date(dateStr + "T00:00:00");
@@ -80,16 +117,39 @@ export function MobileMonthlyView({
     return `${mo}/${dy}(${wd})`;
   }
 
-  // Calendar grid rendering
+  // カレンダー表示月のグリッド
   const calCells = useMemo(() => {
-    const [y, mo] = monthKey.split("-").map(Number);
+    const [y, mo] = calViewMonth.split("-").map(Number);
+    const days = daysInMonth(calViewMonth);
     const firstDow = new Date(y!, mo! - 1, 1).getDay();
     const cells: (number | null)[] = [];
     for (let i = 0; i < firstDow; i++) cells.push(null);
-    for (let d = 1; d <= totalDays; d++) cells.push(d);
+    for (let d = 1; d <= days; d++) cells.push(d);
     while (cells.length % 7 !== 0) cells.push(null);
     return cells;
-  }, [monthKey, totalDays]);
+  }, [calViewMonth]);
+
+  // 今日の日付文字列
+  const todayStr = useMemo(() => {
+    const t = new Date();
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+  }, []);
+
+  // カレンダー表示月ラベル
+  const [calY, calM] = calViewMonth.split("-").map(Number);
+  const calTitle = `${calY}年${calM}月`;
+
+  function handleCalDateSelect(day: number) {
+    const newDate = toDateStr(calViewMonth, day);
+    if (calViewMonth !== monthKey) {
+      // 別月 → 親の monthKey を切り替え、selectedDate は新しい月の初日として渡す
+      onMonthChange(calViewMonth);
+      setSelectedDate(newDate);
+    } else {
+      setSelectedDate(newDate);
+    }
+    setCalOpen(false);
+  }
 
   const dayCells = cellMap.get(selectedDate);
   const dayTotal = columns.reduce(
@@ -108,16 +168,19 @@ export function MobileMonthlyView({
         <div className="mobile-day-nav">
           <button
             className="mobile-nav-btn"
-            onClick={() => prevDate && setSelectedDate(prevDate)}
-            disabled={!prevDate}
+            onClick={() => {
+              if (selectedDay === 1) onMonthChange(prevMonthKey);
+              setSelectedDate(prevDate);
+            }}
+            disabled={!hasPrev}
           >
-            ◀ {prevDay != null ? `${monthNum}/${prevDay}` : ""}
+            ◀ {prevLabel}
           </button>
 
           <div className="mobile-nav-center">
             <button
               className="mobile-nav-current"
-              onClick={() => setCalOpen((v) => !v)}
+              onClick={openCalendar}
             >
               {dayLabel(selectedDate)}
             </button>
@@ -132,6 +195,23 @@ export function MobileMonthlyView({
                   className="mobile-calendar-popup"
                   onClick={(e) => e.stopPropagation()}
                 >
+                  {/* 月ナビゲーションヘッダー */}
+                  <div className="mobile-cal-month-nav">
+                    <button
+                      className="mobile-cal-month-btn"
+                      onClick={() => setCalViewMonth(addMonths(calViewMonth, -1))}
+                    >
+                      ◀
+                    </button>
+                    <span className="mobile-cal-month-label">{calTitle}</span>
+                    <button
+                      className="mobile-cal-month-btn"
+                      onClick={() => setCalViewMonth(addMonths(calViewMonth, 1))}
+                    >
+                      ▶
+                    </button>
+                  </div>
+
                   <div className="mobile-calendar-weekdays">
                     {WEEK_DAYS.map((w, i) => (
                       <span key={i} className="mobile-cal-wd">{w}</span>
@@ -142,21 +222,20 @@ export function MobileMonthlyView({
                       if (day === null) {
                         return <span key={i} className="mobile-cal-cell mobile-cal-empty" />;
                       }
-                      const dateStr = toDateStr(monthKey, day);
+                      const dateStr = toDateStr(calViewMonth, day);
                       const hasData = cellMap.has(dateStr);
-                      const isSelected = day === selectedDay;
+                      const isSelected = dateStr === selectedDate;
+                      const isToday = dateStr === todayStr;
                       return (
                         <button
                           key={i}
                           className={[
                             "mobile-cal-cell",
                             isSelected ? "mobile-cal-selected" : "",
+                            isToday && !isSelected ? "mobile-cal-today" : "",
                             hasData ? "mobile-cal-has-data" : "",
                           ].filter(Boolean).join(" ")}
-                          onClick={() => {
-                            setSelectedDate(dateStr);
-                            setCalOpen(false);
-                          }}
+                          onClick={() => handleCalDateSelect(day)}
                         >
                           {day}
                           {hasData && <span className="mobile-cal-dot" />}
@@ -171,10 +250,13 @@ export function MobileMonthlyView({
 
           <button
             className="mobile-nav-btn"
-            onClick={() => nextDate && setSelectedDate(nextDate)}
-            disabled={!nextDate}
+            onClick={() => {
+              if (selectedDay === totalDays) onMonthChange(nextMonthKey);
+              setSelectedDate(nextDate);
+            }}
+            disabled={!hasNext}
           >
-            {nextDay != null ? `${monthNum}/${nextDay}` : ""} ▶
+            {nextLabel} ▶
           </button>
         </div>
       </div>

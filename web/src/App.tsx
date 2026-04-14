@@ -667,7 +667,7 @@ function AppInner({
 
       {/* Tab bar */}
       <nav className="tab-bar">
-        {TABS.map((tab) => (
+        {TABS.filter((tab) => !isMobile || (tab.id !== "weekly" && tab.id !== "export")).map((tab) => (
           <button
             key={tab.id}
             className={`tab-item${activeTab === tab.id ? " tab-item--active" : ""}`}
@@ -784,6 +784,7 @@ function AppInner({
                   editable={editable}
                   onCellClick={handleCellClick}
                   onOpenCatManager={() => setCatManagerOpen(true)}
+                  onMonthChange={guardedSetMonthKey}
                 />
               )}
             </div>

@@ -2153,6 +2153,33 @@ body {
     animation: modal-pop 0.18s ease-out;
   }
 
+  .mobile-cal-month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .mobile-cal-month-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  .mobile-cal-month-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--color-accent);
+    padding: 4px 8px;
+    border-radius: 4px;
+  }
+
+  .mobile-cal-month-btn:active {
+    background: var(--color-paper);
+  }
+
   .mobile-calendar-weekdays {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
@@ -2197,6 +2224,12 @@ body {
   .mobile-cal-selected {
     background: var(--color-accent);
     color: #fff;
+  }
+
+  .mobile-cal-today {
+    border: 2px solid var(--color-accent);
+    color: var(--color-accent);
+    font-weight: 700;
   }
 
   .mobile-cal-dot {
