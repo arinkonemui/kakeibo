@@ -443,6 +443,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 100;
   z-index: 200;
 }
 
@@ -2314,5 +2315,50 @@ body {
     margin-top: 16px;
     padding-top: 12px;
     border-top: 1px solid var(--color-border);
+  }
+
+  .modal-content,
+  .category-manager {
+    min-width: 0;
+    width: calc(100vw - 32px);
+    max-width: calc(100vw - 32px);
+    box-sizing: border-box;
+  }
+
+  /* 明細行：文字・ボタンをコンパクトに */
+  .entry-item {
+    font-size: 0.75rem;
+    gap: 4px;
+    flex-wrap: nowrap;
+  }
+  .entry-amount {
+    min-width: 54px;
+    font-size: 0.75rem;
+  }
+  .entry-memo,
+  .entry-pay {
+    font-size: 0.7rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 80px;
+  }
+  .btn-cat-edit,
+  .btn-delete {
+    padding: 2px 6px;
+    font-size: 0.68rem;
+    flex-shrink: 0;
+  }
+
+  /* 保存バー：フォント・パディング縮小 */
+  .save-bar {
+    padding: 8px 12px;
+    gap: 8px;
+    font-size: 0.78rem;
+  }
+  .save-bar button {
+    padding: 5px 10px;
+    font-size: 0.78rem;
+    white-space: nowrap;
   }
 }

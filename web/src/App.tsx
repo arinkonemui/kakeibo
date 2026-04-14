@@ -946,6 +946,18 @@ function AppInner({
         />
       )}
 
+      {mobileFixedType && (
+        <MobileFixedPanelModal
+          type={mobileFixedType}
+          fx={fx}
+          onClose={() => setMobileFixedType(null)}
+          onManage={() => {
+            setFeManagerInitialTab(mobileFixedType);
+            setFeManagerOpen(true);
+          }}
+        />
+      )}
+
       {feManagerOpen && (
         <FixedExpensesManager
           items={fx.items}
@@ -977,18 +989,6 @@ function AppInner({
             setProfileOpen(false);
           }}
           onLogout={onLogout}
-        />
-      )}
-
-      {mobileFixedType && (
-        <MobileFixedPanelModal
-          type={mobileFixedType}
-          fx={fx}
-          onClose={() => setMobileFixedType(null)}
-          onManage={() => {
-            setFeManagerInitialTab(mobileFixedType);
-            setFeManagerOpen(true);
-          }}
         />
       )}
     </div>
