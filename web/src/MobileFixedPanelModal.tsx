@@ -40,9 +40,10 @@ interface Props {
   type: "expense" | "income";
   fx: UseFixedExpensesReturn;
   onClose: () => void;
+  onManage: () => void;
 }
 
-export function MobileFixedPanelModal({ type, fx, onClose }: Props) {
+export function MobileFixedPanelModal({ type, fx, onClose, onManage }: Props) {
   const { closing, handleClose } = useModalClose(onClose);
   const [saving, setSaving] = useState(false);
 
@@ -76,6 +77,7 @@ export function MobileFixedPanelModal({ type, fx, onClose }: Props) {
       >
         <div className="modal-header">
           <h3>{title}</h3>
+          <button className="btn-open-cat" onClick={onManage}>カテゴリ設定</button>
           <button className="modal-close" onClick={handleClose}>✕</button>
         </div>
 

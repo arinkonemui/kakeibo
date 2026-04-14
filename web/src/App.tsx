@@ -985,6 +985,10 @@ function AppInner({
           type={mobileFixedType}
           fx={fx}
           onClose={() => setMobileFixedType(null)}
+          onManage={() => {
+            setFeManagerInitialTab(mobileFixedType);
+            setFeManagerOpen(true);
+          }}
         />
       )}
     </div>
