@@ -993,6 +993,8 @@ function AppInner({
       )}
 
       <footer className="app-footer">
+        <a href="/apps/kakeibo/instructions.html">使い方ガイド</a>
+        <span aria-hidden="true"> / </span>
         <a href="/apps/kakeibo/privacy.html">プライバシーポリシー</a>
         <span aria-hidden="true"> / </span>
         <a

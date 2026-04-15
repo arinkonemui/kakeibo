@@ -918,3 +918,44 @@ cd web && npx vite
 - AdSense 管理画面で `arinkolab.com/apps/kakeibo` を新規サイトとして登録
 - ルートドメイン `arinkolab.com/ads.txt` 設置（本リポジトリ対象外）
 - 将来 Google Analytics 導入時は Cookie 同意バナー追加を検討
+
+---
+
+## 2026-04-14T03:10+09:00 — 使い方ガイド追加とグローバルフッター化
+
+### 目的
+- 全タブ共通のグローバルフッターを実装し、AdSense 要件「全ページから法務ページへ到達可能」を満たす
+- 使い方ガイド（instructions.html）を新規作成し、未ログインユーザー・新規ユーザーへの利用価値向上＋AdSense 審査の「十分なコンテンツ」要件強化
+- 月間表のレイアウトを SVG 概念図で視覚化（スクリーンショット無しでも構造が伝わる）
+
+### 変更ファイル
+- `web/public/instructions.html` — 新規作成。目次・ステップ・SVG概念図・FAQ・フッターリンクを含む総合ガイド
+- `web/src/App.tsx` — `AppInner` 末尾に `<footer class="app-footer">` を追加（使い方ガイド / プライバシーポリシー / お問い合わせ）
+- `web/src/LoginScreen.tsx` — 使い方ガイドリンクを追加。`.login-screen` 内で縦配置になるようフッターを配置
+- `web/src/SettingsTab.tsx` — 「このサイトについて」セクションを削除（グローバルフッターと重複のため）
+- `web/src/index.css` — `.login-screen` に `flex-direction: column` を追加、`.app-footer` スタイル追加
+- `web/public/privacy.html` — 戻るリンクの隣に使い方ガイドリンクを追加
+
+### 決定理由
+1. **SettingsTab の重複削除**：グローバルフッターで全タブ対応できたため、予算タブの「このサイトについて」は不要
+2. **SVG 概念図を採用**：実スクリーンショットはログイン＆データ入力後でないと撮れず、ダミーデータは誤解を招きやすい。レイアウト構造を示す SVG なら意図が明快
+3. **フッターの順序**：使い方ガイド → プライバシーポリシー → お問い合わせ。初見ユーザーが一番押しやすい位置に使い方ガイド
+
+### 検証方法
+```bash
+# Wrangler 起動
+npx wrangler dev
+
+# 各ページの 200 確認（dev では BASE_PATH 空）
+curl -o /dev/null -s -w "%{http_code} %{url_effective}\n" \
+  http://localhost:8787/instructions.html \
+  http://localhost:8787/privacy.html \
+  http://localhost:8787/
+```
+ブラウザで以下を確認:
+- ログイン画面フッターに3リンク表示
+- 全タブ（月間/週間/集計/予算/出力）の最下部に `.app-footer` 表示
+- 使い方ガイドの目次アンカーが動作、SVG 概念図が表示される
+
+### Next Actions
+- AdSense 再申請（ルートドメインに ads.txt 設置後）

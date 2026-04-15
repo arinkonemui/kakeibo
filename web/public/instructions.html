@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>使い方ガイド | おさいふノート</title>
+  <meta name="description" content="おさいふノートの使い方ガイド。アカウント作成から月予算設定、明細入力、カテゴリ管理、集計・CSV/PDF出力までの基本操作を解説します。">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="https://arinkolab.com/apps/kakeibo/instructions.html">
+  <!-- AdSense site verification / Auto ads -->
+  <meta name="google-adsense-account" content="ca-pub-5864682832251768">
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5864682832251768" crossorigin="anonymous"></script>
+  <style>
+    :root { --bg:#fffaf2; --card:#ffffff; --muted:#666666; --fg:#1a1a1a; --acc:#ff6b6b; --acc2:#ff9f43; --border:#f2e5d0; }
+    *{box-sizing:border-box; margin:0; padding:0}
+    body{background:var(--bg);color:var(--fg);font:16px/1.7 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif}
+    .wrap{max-width:860px;margin:0 auto;padding:24px 16px}
+    h1{font-size:1.6rem;font-weight:800;margin-bottom:1rem;color:var(--acc)}
+    h2{font-size:1.2rem;font-weight:700;margin:2rem 0 0.5rem;padding-bottom:0.3rem;border-bottom:1px solid var(--border)}
+    h3{font-size:1rem;font-weight:600;margin:1.2rem 0 0.4rem;color:var(--acc2)}
+    p{margin-bottom:0.8rem}
+    ul,ol{margin:0.5rem 0 1rem 1.5rem}
+    li{margin-bottom:0.4rem}
+    a{color:var(--acc);text-decoration:none}
+    a:hover{text-decoration:underline}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin:1rem 0;box-shadow:0 2px 8px rgba(255,159,67,0.08)}
+    .step{counter-increment:step;position:relative;padding-left:2.5rem;margin-bottom:1.5rem}
+    .step::before{content:counter(step);position:absolute;left:0;top:0;width:2rem;height:2rem;background:var(--acc);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.9rem}
+    .steps{counter-reset:step}
+    code{background:#fff3e6;border:1px solid var(--border);border-radius:6px;padding:2px 6px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:0.9em}
+    .badge{display:inline-block;padding:2px 10px;border:1px solid #d0d5dd;border-radius:999px;font-size:12px;color:#555;margin:2px;background:#fff}
+    .note{background:#fff3e6;border-left:3px solid var(--acc2);padding:12px 16px;border-radius:0 8px 8px 0;margin:1rem 0;font-size:0.9rem}
+    .warn{background:#fff0f0;border-left:3px solid var(--acc);padding:12px 16px;border-radius:0 8px 8px 0;margin:1rem 0;font-size:0.9rem}
+    .tab-list{display:flex;flex-wrap:wrap;gap:8px;margin:0.5rem 0 1rem;padding:0;list-style:none}
+    .tab-list li{background:#fff;border:1px solid var(--border);border-radius:999px;padding:4px 14px;font-size:0.85rem;color:var(--acc)}
+    .pay-badges{display:flex;flex-wrap:wrap;gap:6px;margin:0.5rem 0 1rem}
+    .footer{margin-top:2rem;padding-top:1rem;border-top:1px solid var(--border);font-size:12px;color:var(--muted);text-align:center}
+    .footer a{color:var(--muted)}
+    .footer .sep{margin:0 8px}
+    .toc{background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin:1rem 0;font-size:0.9rem}
+    .toc h2{margin:0 0 0.4rem;padding:0;border:none;font-size:0.95rem;color:var(--acc)}
+    .toc ol{margin:0 0 0 1.5rem}
+    .toc li{margin-bottom:0.2rem}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>おさいふノート 使い方ガイド</h1>
+
+    <p>
+      おさいふノートは、家計簿を手帳のように見開き管理できる Web アプリです。
+      このページでは、アカウント作成から日々の入力、集計・出力までの基本操作を説明します。
+    </p>
+
+    <nav class="toc" aria-label="目次">
+      <h2>目次</h2>
+      <ol>
+        <li><a href="#start">はじめかた（アカウント作成）</a></li>
+        <li><a href="#budget">月予算を設定する</a></li>
+        <li><a href="#entry">明細を入力する</a></li>
+        <li><a href="#tabs">5つのタブの使い分け</a></li>
+        <li><a href="#category">カテゴリ管理</a></li>
+        <li><a href="#fixed">固定費・固定収入</a></li>
+        <li><a href="#export">CSV / PDF 出力</a></li>
+        <li><a href="#archive">アーカイブ閲覧（編集不可月）</a></li>
+        <li><a href="#account">アカウント・データ削除</a></li>
+        <li><a href="#faq">よくある質問</a></li>
+      </ol>
+    </nav>
+
+    <h2 id="start">はじめかた（アカウント作成）</h2>
+
+    <div class="steps">
+      <div class="step">
+        <strong>ログイン画面で「新規登録」タブを選択</strong>
+        <p>メールアドレス・パスワード（8文字以上）・ユーザー名（任意）を入力します。</p>
+      </div>
+      <div class="step">
+        <strong>確認メールを受信</strong>
+        <p>登録したメールアドレス宛に確認メールが届きます。メール内のリンクをクリックしてください。</p>
+      </div>
+      <div class="step">
+        <strong>ログインして開始</strong>
+        <p>確認が完了するとそのままログインされ、今月の家計簿入力を開始できます。</p>
+      </div>
+    </div>
+
+    <div class="note">
+      確認メールが届かない場合は、迷惑メールフォルダをご確認ください。
+      ログイン画面の「確認メールを再送する」ボタンから再送も可能です。
+    </div>
+
+    <h2 id="budget">月予算を設定する</h2>
+
+    <p>
+      最初に当月の <strong>月予算</strong> を設定します。「予算」タブを開き、金額を入力して「月予算を保存」ボタンを押してください。
+    </p>
+
+    <h3>日予算（自動計算）</h3>
+    <p>
+      月予算を設定すると、<code>月予算 ÷ 月の日数</code>（切り捨て）で <strong>デフォルト日予算</strong> が自動算出されます。
+      これは「1日あたりこれくらいで使えば予算内」という目安です。
+    </p>
+
+    <h3>日別予算の上書き</h3>
+    <p>
+      特定の日だけ予算を変えたい場合は「日別予算上書き」から日付と金額を指定します。
+      例えば月末の外食日だけ予算を増やす、といった使い方ができます。
+    </p>
+
+    <h3>締め日の変更</h3>
+    <p>
+      初期設定では暦月（1日〜末日）ですが、プロフィール設定から <strong>25日締め</strong> のように締め日を変更できます。
+      給与サイクルに合わせて設定すると便利です。
+    </p>
+
+    <h2 id="entry">明細を入力する</h2>
+
+    <div class="steps">
+      <div class="step">
+        <strong>月間表で日付×カテゴリのセルをクリック</strong>
+        <p>「月間」タブで、入力したい日付と支出カテゴリが交差するセルをタップ／クリックします。</p>
+      </div>
+      <div class="step">
+        <strong>金額・メモ・支払方法を入力</strong>
+        <p>モーダルが開きます。金額（必須）、メモ（任意）、支払方法を選んで「追加」をタップします。</p>
+      </div>
+      <div class="step">
+        <strong>画面下の「保存」ボタンで確定</strong>
+        <p>複数の変更をまとめて保存できます。未保存の件数が画面下に表示されるので、最後にまとめて保存してください。</p>
+      </div>
+    </div>
+
+    <h3>支払方法の種類</h3>
+    <div class="pay-badges">
+      <span class="badge">現金</span>
+      <span class="badge">クレカ</span>
+      <span class="badge">銀行引落</span>
+      <span class="badge">QR</span>
+      <span class="badge">その他</span>
+      <span class="badge">未入力</span>
+    </div>
+
+    <h3>収入の入力</h3>
+    <p>
+      収入も入力できます（月間表には表示されませんが、集計・出力には反映されます）。
+      給与や臨時収入は「固定収入」タブから登録しておくと毎月自動で反映されます。
+    </p>
+
+    <div class="note">
+      セルに表示されるのは「その日 × そのカテゴリの支出合計」です。
+      複数明細を登録すると自動で合算表示されます。
+    </div>
+
+    <h2 id="tabs">5つのタブの使い分け</h2>
+
+    <ul class="tab-list">
+      <li>月間</li>
+      <li>週間</li>
+      <li>集計</li>
+      <li>予算</li>
+      <li>出力</li>
+    </ul>
+
+    <h3>月間タブ（メイン画面）</h3>
+    <p>
+      縦＝日付、横＝カテゴリの月間表を表示します。右端に「日合算」列、下部に「カテゴリ合算」行が固定表示され、お金の流れを一目で把握できます。
+      日予算を超過した日は赤く表示されます。
+    </p>
+
+    <figure style="margin:1rem 0;background:#fff;border:1px solid var(--border);border-radius:10px;padding:16px;overflow-x:auto">
+      <svg role="img" aria-label="月間表のレイアウト概念図" viewBox="0 0 560 280" width="100%" style="max-width:560px;display:block;margin:0 auto">
+        <style>
+          .g-head{fill:#ff9f43;font:600 11px system-ui;}
+          .g-cell{fill:#1a1a1a;font:10px ui-monospace,Menlo,monospace;}
+          .g-line{stroke:#f2e5d0;stroke-width:1;}
+          .g-bg{fill:#fffaf2;}
+          .g-sum{fill:#fff3e6;}
+          .g-over{fill:#ffe4e4;}
+          .g-label{fill:#666;font:10px system-ui;}
+        </style>
+        <rect class="g-bg" x="0" y="0" width="560" height="280"/>
+        <rect class="g-sum" x="0" y="0" width="560" height="30"/>
+        <text class="g-head" x="10" y="20">日付</text>
+        <text class="g-head" x="80" y="20">食費</text>
+        <text class="g-head" x="160" y="20">日用品</text>
+        <text class="g-head" x="250" y="20">交通</text>
+        <text class="g-head" x="330" y="20">趣味</text>
+        <text class="g-head" x="410" y="20">その他</text>
+        <text class="g-head" x="485" y="20">日合算 →</text>
+        <text class="g-cell" x="10" y="55">4/1</text>
+        <text class="g-cell" x="80" y="55">¥1,200</text>
+        <text class="g-cell" x="160" y="55">¥350</text>
+        <text class="g-cell" x="250" y="55">—</text>
+        <text class="g-cell" x="330" y="55">—</text>
+        <text class="g-cell" x="410" y="55">—</text>
+        <text class="g-cell" x="485" y="55">¥1,550</text>
+        <text class="g-cell" x="10" y="85">4/2</text>
+        <text class="g-cell" x="80" y="85">¥800</text>
+        <text class="g-cell" x="160" y="85">—</text>
+        <text class="g-cell" x="250" y="85">¥420</text>
+        <text class="g-cell" x="330" y="85">—</text>
+        <text class="g-cell" x="410" y="85">—</text>
+        <text class="g-cell" x="485" y="85">¥1,220</text>
+        <rect class="g-over" x="0" y="100" width="560" height="30"/>
+        <text class="g-cell" x="10" y="115">4/3</text>
+        <text class="g-cell" x="80" y="115" fill="#c0392b">¥2,800</text>
+        <text class="g-cell" x="160" y="115">¥550</text>
+        <text class="g-cell" x="250" y="115">¥200</text>
+        <text class="g-cell" x="330" y="115">¥1,500</text>
+        <text class="g-cell" x="410" y="115">—</text>
+        <text class="g-cell" x="485" y="115" fill="#c0392b">¥5,050 ⚠</text>
+        <text class="g-cell" x="10" y="145">4/4</text>
+        <text class="g-cell" x="80" y="145">¥900</text>
+        <text class="g-cell" x="160" y="145">—</text>
+        <text class="g-cell" x="250" y="145">—</text>
+        <text class="g-cell" x="330" y="145">—</text>
+        <text class="g-cell" x="410" y="145">¥3,000</text>
+        <text class="g-cell" x="485" y="145">¥3,900</text>
+        <text class="g-cell" x="10" y="175">…</text>
+        <text class="g-cell" x="80" y="175">…</text>
+        <text class="g-cell" x="160" y="175">…</text>
+        <text class="g-cell" x="250" y="175">…</text>
+        <text class="g-cell" x="330" y="175">…</text>
+        <text class="g-cell" x="410" y="175">…</text>
+        <text class="g-cell" x="485" y="175">…</text>
+        <rect class="g-sum" x="0" y="200" width="560" height="30"/>
+        <text class="g-head" x="10" y="220">合算 ↓</text>
+        <text class="g-cell" x="80" y="220">¥32,400</text>
+        <text class="g-cell" x="160" y="220">¥4,800</text>
+        <text class="g-cell" x="250" y="220">¥6,200</text>
+        <text class="g-cell" x="330" y="220">¥5,500</text>
+        <text class="g-cell" x="410" y="220">¥8,000</text>
+        <text class="g-cell" x="485" y="220">¥56,900</text>
+        <line class="g-line" x1="0" y1="30" x2="560" y2="30"/>
+        <line class="g-line" x1="0" y1="60" x2="560" y2="60"/>
+        <line class="g-line" x1="0" y1="90" x2="560" y2="90"/>
+        <line class="g-line" x1="0" y1="120" x2="560" y2="120"/>
+        <line class="g-line" x1="0" y1="150" x2="560" y2="150"/>
+        <line class="g-line" x1="0" y1="180" x2="560" y2="180"/>
+        <line class="g-line" x1="0" y1="200" x2="560" y2="200"/>
+        <line class="g-line" x1="60" y1="0" x2="60" y2="230"/>
+        <line class="g-line" x1="140" y1="0" x2="140" y2="230"/>
+        <line class="g-line" x1="230" y1="0" x2="230" y2="230"/>
+        <line class="g-line" x1="310" y1="0" x2="310" y2="230"/>
+        <line class="g-line" x1="390" y1="0" x2="390" y2="230"/>
+        <line class="g-line" x1="470" y1="0" x2="470" y2="230"/>
+        <text class="g-label" x="10" y="260">
+          赤い行：日予算を超えた日（例: 4/3 ⚠）｜ 右端：日合算（固定表示）｜ 下段：カテゴリ別合算
+        </text>
+      </svg>
+      <figcaption style="font-size:0.85rem;color:#666;text-align:center;margin-top:8px">
+        月間表のイメージ（縦＝日付、横＝カテゴリ）
+      </figcaption>
+    </figure>
+
+    <h3>週間タブ</h3>
+    <p>
+      同じデータを週単位で表示します。週ごとの支出合計を確認したいときに便利です。
+    </p>
+
+    <h3>集計タブ</h3>
+    <p>
+      カテゴリ別の割合を円グラフ、日別支出の推移を折れ線グラフで表示します。
+      「どのカテゴリに使いすぎているか」を視覚的に確認できます。
+    </p>
+
+    <h3>予算タブ</h3>
+    <p>
+      月予算・日別予算上書きの設定画面です。カテゴリ管理や固定費管理のモーダルもここから開けます。
+    </p>
+
+    <h3>出力タブ</h3>
+    <p>
+      当月のデータを CSV（表計算ソフト向け）または PDF（印刷・共有向け）に出力できます。詳細は <a href="#export">CSV / PDF 出力</a> を参照してください。
+    </p>
+
+    <h2 id="category">カテゴリ管理</h2>
+    <p>
+      「予算」タブから「カテゴリ管理」を開くと、カテゴリの追加・リネーム・並び替え・無効化が行えます。
+    </p>
+    <ul>
+      <li><strong>追加</strong>：食費・日用品・趣味など、自由に追加できます</li>
+      <li><strong>無効化</strong>：使わなくなったカテゴリは非表示にできます（過去データは残ります）</li>
+      <li><strong>並び替え</strong>：月間表の列順を自分の使いやすい順に変更できます</li>
+    </ul>
+
+    <h2 id="fixed">固定費・固定収入</h2>
+    <p>
+      毎月発生する家賃・通信費・給与などは「固定費／固定収入」として登録できます。
+      一度登録すれば、翌月以降は自動で集計に反映されます。
+    </p>
+    <ul>
+      <li><strong>固定費</strong>：家賃、電気・ガス・水道、通信費、サブスク料金など</li>
+      <li><strong>固定収入</strong>：給与、年金、定期的な副収入など</li>
+    </ul>
+
+    <h2 id="export">CSV / PDF 出力</h2>
+
+    <h3>CSV 出力</h3>
+    <p>
+      「出力」タブから当月の明細を CSV ファイルとしてダウンロードできます。
+      Excel / Google スプレッドシート / Numbers で開いて、独自の分析やバックアップに利用できます。
+    </p>
+
+    <h3>PDF 出力</h3>
+    <p>
+      月間表を A4 レイアウトの PDF として保存できます。印刷して家計ノートとして貼ったり、家族と共有するのに便利です。
+    </p>
+
+    <div class="note">
+      出力時も追加のサーバー通信は行わず、読み込み済みのデータのみで生成されます。
+    </div>
+
+    <h2 id="archive">アーカイブ閲覧（編集不可月）</h2>
+    <p>
+      編集できるのは <strong>当月と過去5か月</strong> までです。それ以上古い月のデータを見たい場合は、過去に CSV 出力したファイルを「出力」タブの「アーカイブ表示」から読み込むことで閲覧できます。
+    </p>
+    <div class="warn">
+      アーカイブ表示中は「アーカイブ表示のため保存できません」と表示され、編集はできません（閲覧専用）。
+    </div>
+
+    <h2 id="account">アカウント・データ削除</h2>
+    <p>
+      画面右上の歯車アイコン（⚙）からアカウント設定を開けます。
+    </p>
+    <ul>
+      <li><strong>表示名の変更</strong>：画面に表示される名前を変更できます</li>
+      <li><strong>パスワードリセット</strong>：ログイン画面の「パスワードをお忘れですか？」から再設定できます</li>
+      <li><strong>アカウント削除</strong>：アカウントと紐づくすべての家計簿データを完全に削除できます（復元不可）</li>
+    </ul>
+
+    <h2 id="faq">よくある質問</h2>
+
+    <div class="card">
+      <h3 style="margin-top:0">Q. 入力したデータは安全に保管されますか？</h3>
+      <p>
+        通信はすべて HTTPS で暗号化され、データは Cloudflare D1（サーバレスデータベース）に保存されます。
+        他のユーザーがあなたのデータを閲覧することはできません。
+      </p>
+
+      <h3>Q. スマートフォンでも使えますか？</h3>
+      <p>
+        はい、スマホ画面にも最適化されています。レスポンシブ対応のため、ブラウザからそのままご利用ください。
+      </p>
+
+      <h3>Q. オフラインでも使えますか？</h3>
+      <p>
+        現状はオンライン前提です（データ保存のためインターネット接続が必要です）。
+        ただし月次データはキャッシュされ、タブ切替・スクロールでは追加の通信は発生しません。
+      </p>
+
+      <h3>Q. 複数端末で同期されますか？</h3>
+      <p>
+        はい、同じアカウントでログインすればどの端末からも同じデータを確認・編集できます。
+      </p>
+
+      <h3>Q. 無料で使えますか？</h3>
+      <p>
+        はい、個人利用は無料です。運営費用は広告収入で賄っています。
+      </p>
+    </div>
+
+    <p style="margin-top:2rem">
+      <a href="/apps/kakeibo/">← おさいふノートに戻る</a>
+    </p>
+
+    <footer class="footer">
+      <a href="/apps/kakeibo/">おさいふノート</a>
+      <span class="sep">/</span>
+      <a href="https://docs.google.com/forms/d/e/1FAIpQLSfAik5HI7j_tHFLD5zvU8y4cg0AOY-P_ZVU9B9mhctn57CFMQ/viewform" target="_blank" rel="noopener">お問い合わせ</a>
+      <span class="sep">/</span>
+      <a href="/apps/kakeibo/privacy.html">プライバシーポリシー</a>
+    </footer>
+  </div>
+</body>
+</html>
