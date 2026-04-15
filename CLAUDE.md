@@ -7,7 +7,7 @@
 | DBスキーマ | docs/DB_SCHEMA.md + db/schema.sql |
 | API・保存・キャッシュ | docs/RULES.md |
 | UIコピー・ブランド | docs/SPEC.md §8 |
-| ログ追記前 | docs/AGENT_LOG.md |
+| ログ追記前 | docs/AGENT_LOG.md | 現在は読み込み不要とする。
 
 ## 仕様の源泉
 - 要件: docs/SPEC.md　制約: docs/RULES.md　ロードマップ: docs/PLAN.md
