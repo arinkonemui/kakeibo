@@ -168,7 +168,10 @@ export default {
         // ダミーホストを使用（実ドメインだと Cloudflare がリダイレクトを返すため）
         const assetRes = await env.ASSETS.fetch(new Request(`http://assets.local${filePath}`));
         // ファイルが見つからない場合は SPA の index.html を返す
+        // ただし拡張子付きの明示的ファイル要求は 404 のまま返す
         if (assetRes.status === 404) {
+          const hasFileExt = /\.[a-z0-9]{2,5}$/i.test(filePath);
+          if (hasFileExt) return assetRes;
           return env.ASSETS.fetch(new Request("http://assets.local/index.html"));
         }
         return assetRes;

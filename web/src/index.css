@@ -801,6 +801,7 @@ body {
 .login-screen {
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   background: var(--color-paper);
@@ -2361,4 +2362,60 @@ body {
     font-size: 0.78rem;
     white-space: nowrap;
   }
+}
+
+/* ── アプリ全体グローバルフッター（ログイン後・全タブ共通） ── */
+.app-footer {
+  padding: 16px;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--color-text-muted, #888);
+  border-top: 1px solid var(--color-border, #eee);
+  margin-top: 24px;
+}
+.app-footer a {
+  color: var(--color-text-muted, #666);
+  text-decoration: underline;
+}
+.app-footer a:hover {
+  color: var(--color-text, #1a1a1a);
+}
+
+/* ── ログイン画面フッター（法務リンク） ── */
+.login-footer {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--color-text-muted, #666);
+}
+.login-footer a {
+  color: var(--color-text-muted, #555);
+  text-decoration: underline;
+}
+.login-footer a:hover {
+  color: var(--color-text, #1a1a1a);
+}
+.login-footer-copy {
+  margin-top: 6px;
+  font-size: 0.75rem;
+  color: #999;
+}
+
+/* ── 設定タブ「このサイトについて」 ── */
+.about-links {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.about-links a {
+  color: var(--color-accent, #ff6b6b);
+  text-decoration: underline;
+}
+.about-operator {
+  margin: 0;
+  color: #888;
+  font-size: 0.85rem;
 }

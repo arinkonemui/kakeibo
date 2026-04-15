@@ -870,3 +870,51 @@ npx tsc --noEmit && cd web && npx tsc -b
 
 ### Next Actions
 - ユーザー情報編集（PLAN.md §3.7 残タスク）
+
+---
+
+## 2026-04-14T02:10+09:00 — AdSense 審査対応：プライバシーポリシー追加
+
+### 目的
+Google AdSense の新規サイト承認（arinkolab.com/apps/kakeibo）を通すため、プライバシーポリシーページと AdSense 用メタタグ、法務ページへの導線を追加する。AdSense アカウント（ca-pub-5864682832251768）は他ツール（xmlformatter, jsonformatter, sqlformatter）で既に承認済み。
+
+### 変更ファイル
+- `web/public/privacy.html` — 新規作成。AdSense・Cookie・第三者提供・退会時データ削除等を記載。運営: arinkolab、問い合わせ: 既存 Google Forms
+- `web/index.html` — AdSense メタタグ（`google-adsense-account`）と adsbygoogle スクリプト、canonical、OGP、robots を追加
+- `web/src/LoginScreen.tsx` — `<footer class="login-footer">` を追加し、プライバシーポリシーとお問い合わせへのリンクを配置
+- `web/src/SettingsTab.tsx` — 「このサイトについて」セクションを追加し、同リンクをログイン後画面からも到達可能に
+- `web/src/index.css` — `.login-footer`, `.about-links`, `.about-operator` のスタイル追加
+- `src/index.ts` — SPA フォールバックを改良し、拡張子付きファイル要求の 404 は index.html に落とさず 404 のまま返すよう修正
+
+### 決定理由
+1. **静的HTML方式**：他3ツールと形式を揃えて審査担当の巡回を容易に。Vite の `public/` に置くことで dist へ自動コピーされ、Cloudflare `[assets]` 経由でそのまま配信される
+2. **React Router 不使用**：SPA ルートを追加する代わりに静的 HTML とした。依存増加・ビルド設定変更を回避
+3. **404 を index.html に落とさない**：`.html` などの明示的なファイル要求が 404 の場合、以前は index.html を返していた。AdSense クローラや SEO の観点から、存在しないファイル要求は 404 のまま返すのが望ましい
+4. **ログイン画面＋設定タブ両方に導線**：未ログイン・ログイン後両方のユーザーから全画面で到達可能にし、AdSense の「全ページから法務ページに到達可能」要件を満たす
+5. **メール直書きせず Google Forms 利用**：他3ツールと運用を統一し、スパム対策
+
+### 検証方法
+```bash
+# ビルド
+cd web && npx vite build
+
+# Wrangler 起動（ポート 8787）
+npx wrangler dev
+
+# 検証（dev では BASE_PATH="" のため /privacy.html で確認）
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8787/privacy.html       # 200
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8787/nonexistent.xyz    # 404（SPA fallback に落ちないこと）
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8787/                    # 200（index.html）
+
+# Vite 起動（ポート 5173）
+cd web && npx vite
+# → http://localhost:5173/apps/kakeibo/ でログイン画面のフッターに法務リンクが見えること
+# → http://localhost:5173/apps/kakeibo/privacy.html でポリシーが読めること
+```
+
+本番（`arinkolab.com/apps/kakeibo/privacy.html`）では BASE_PATH=/apps/kakeibo によりワーカーが `/apps/kakeibo/privacy.html` を `/privacy.html` に剥がし、env.ASSETS 経由で配信される。
+
+### Next Actions
+- AdSense 管理画面で `arinkolab.com/apps/kakeibo` を新規サイトとして登録
+- ルートドメイン `arinkolab.com/ads.txt` 設置（本リポジトリ対象外）
+- 将来 Google Analytics 導入時は Cookie 同意バナー追加を検討

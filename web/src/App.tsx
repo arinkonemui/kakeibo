@@ -991,6 +991,18 @@ function AppInner({
           onLogout={onLogout}
         />
       )}
+
+      <footer className="app-footer">
+        <a href="/apps/kakeibo/privacy.html">プライバシーポリシー</a>
+        <span aria-hidden="true"> / </span>
+        <a
+          href="https://docs.google.com/forms/d/e/1FAIpQLSfAik5HI7j_tHFLD5zvU8y4cg0AOY-P_ZVU9B9mhctn57CFMQ/viewform"
+          target="_blank"
+          rel="noopener"
+        >
+          お問い合わせ
+        </a>
+      </footer>
     </div>
   );
 }
