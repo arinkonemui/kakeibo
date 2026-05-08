@@ -2,6 +2,7 @@ import { type AuthEnv, AuthError, getAuthUserId } from "./auth";
 import { handleDeleteAccount, handleLogin, handlePatchProfile, handleRegister, handleResendVerification, handleResetPassword, handleResetRequest, handleVerifyEmail } from "./authApi";
 import { handleDeleteCategory, handlePatchCategory, handlePostCategory } from "./categories";
 import {
+  handleApplyFixedExpensesToFuture,
   handleDeleteFixedExpense,
   handleGetFixedExpenses,
   handlePatchFixedExpense,
@@ -249,6 +250,10 @@ export default {
 
     if (pathname === "/api/fixed-expenses" && request.method === "POST") {
       return handlePostFixedExpense(env.DB, user_id, request);
+    }
+
+    if (pathname === "/api/fixed-expenses/apply-to-future" && request.method === "POST") {
+      return handleApplyFixedExpensesToFuture(env.DB, user_id, request);
     }
 
     const feMatch = pathname.match(/^\/api\/fixed-expenses\/([^/]+)$/);

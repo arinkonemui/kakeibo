@@ -59,11 +59,12 @@ interface Props {
   items: FixedExpenseRow[];
   onClose: () => void;
   showConfirm: (message: string) => Promise<"ok" | "alt" | "cancel">;
-  fx: Pick<UseFixedExpensesReturn, "handleAdd" | "handleDelete" | "handleUpdateMeta">;
+  fx: Pick<UseFixedExpensesReturn, "handleAdd" | "handleDelete" | "handleUpdateMeta" | "applyToFuture" | "applyingToFuture" | "isDirty">;
   initialTab?: "expense" | "income";
+  editable?: boolean;
 }
 
-export function FixedExpensesManager({ items, onClose, showConfirm, fx, initialTab }: Props) {
+export function FixedExpensesManager({ items, onClose, showConfirm, fx, initialTab, editable }: Props) {
   const { closing, handleClose } = useModalClose(onClose);
   const [tab, setTab] = useState<"expense" | "income">(initialTab ?? "expense");
   const [editId, setEditId] = useState<string | null>(null);
@@ -238,6 +239,34 @@ export function FixedExpensesManager({ items, onClose, showConfirm, fx, initialT
             </li>
           ))}
         </ul>
+
+        {editable && (
+          <div className="fe-manager-apply-future">
+            <button
+              className="btn-fe-apply-future"
+              disabled={fx.isDirty || fx.applyingToFuture}
+              title={fx.isDirty ? "先に「保存」してから反映できます" : "以降の月に設定をコピーします"}
+              onClick={async () => {
+                const label = tab === "income" ? "収入" : "固定費";
+                const confirmed = await showConfirm(`${label}の設定を、以降のすべての月に反映します。よろしいですか？`);
+                if (confirmed !== "ok") return;
+                const res = await fx.applyToFuture(tab);
+                if ("error" in res) {
+                  setError(`反映に失敗しました: ${res.error}`);
+                } else if (res.applied_months === 0) {
+                  setError("反映対象の月がありませんでした。");
+                }
+              }}
+            >
+              {fx.applyingToFuture
+                ? "反映中…"
+                : tab === "income" ? "収入を未来月に反映" : "固定費を未来月に反映"}
+            </button>
+            {fx.isDirty && (
+              <p className="fe-apply-future-hint">※ 保存してから反映できます</p>
+            )}
+          </div>
+        )}
 
         <div className="cat-form">
           <h4>{tab === "income" ? "収入を追加" : "固定費を追加"}</h4>

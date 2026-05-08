@@ -1915,11 +1915,88 @@ body {
   margin-bottom: 2px;
 }
 
+/* 固定費・収入を未来月に反映 */
+.fixed-panel-apply-future {
+  padding: 6px 12px 10px;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.btn-apply-future {
+  padding: 6px 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-primary, #ff6b6b);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+
+.btn-apply-future:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.btn-apply-future:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.apply-future-hint {
+  margin: 4px 0 0;
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #888);
+  text-align: right;
+}
+
 /* FixedExpensesManager — タブ */
 .fe-manager-tabs {
   display: flex;
   gap: 4px;
   margin-bottom: 10px;
+}
+
+/* カテゴリ管理モーダル内の「未来月に反映」ボタン */
+.fe-manager-apply-future {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 8px 0 4px;
+  border-top: 1px solid var(--color-border);
+  margin-top: 4px;
+}
+
+.btn-fe-apply-future {
+  padding: 5px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-primary, #ff6b6b);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+
+.btn-fe-apply-future:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.btn-fe-apply-future:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.fe-apply-future-hint {
+  margin: 3px 0 0;
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #888);
+  text-align: right;
 }
 
 .fe-manager-tab {
@@ -2050,6 +2127,16 @@ body {
 
   .mobile-summary-row strong {
     font-weight: 600;
+  }
+
+  .mobile-apply-future-row {
+    align-self: flex-end;
+    margin-top: 6px;
+  }
+
+  .mobile-apply-future-row .btn-apply-future {
+    width: auto;
+    white-space: nowrap;
   }
 
   .mobile-summary-buttons {

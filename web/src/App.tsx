@@ -764,6 +764,7 @@ function AppInner({
                   <div className="mobile-summary-row">
                     <span>収支差額: <strong style={{ color: balance >= 0 ? "#27ae60" : "#e74c3c" }}>¥{fmt(Math.abs(balance))}</strong></span>
                   </div>
+
                 </div>
                 <div className="mobile-summary-buttons">
                   <button className="btn-mobile-panel" onClick={() => setMobileFixedType("expense")}>
@@ -965,6 +966,7 @@ function AppInner({
           showConfirm={showConfirm}
           fx={fx}
           initialTab={feManagerInitialTab}
+          editable={editable}
         />
       )}
 

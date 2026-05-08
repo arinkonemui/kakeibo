@@ -5,6 +5,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  applyFixedExpensesToFuture,
   createFixedExpense,
   deleteFixedExpense,
   fetchFixedExpenses,
@@ -37,6 +38,9 @@ export interface UseFixedExpensesReturn {
   handleUpdateMeta: (id: string, patch: { name?: string; icon_key?: string }) => Promise<string | null>;
   /** 手動再フェッチ */
   reload: () => Promise<void>;
+  /** 当月の固定費・収入（または指定 entry_type のみ）を未来月すべてに一括反映 */
+  applyToFuture: (entryType?: "expense" | "income") => Promise<{ ok: true; applied_months: number } | { error: string }>;
+  applyingToFuture: boolean;
 }
 
 export function useFixedExpenses(monthKey: string): UseFixedExpensesReturn {
@@ -46,6 +50,7 @@ export function useFixedExpenses(monthKey: string): UseFixedExpensesReturn {
   const [draftAmounts, setDraftAmounts] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState(false);
+  const [applyingToFuture, setApplyingToFuture] = useState(false);
   const savedMsgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const expenseItems = useMemo(() => items.filter((i) => i.entry_type !== "income"), [items]);
@@ -163,6 +168,15 @@ export function useFixedExpenses(monthKey: string): UseFixedExpensesReturn {
     [],
   );
 
+  const applyToFuture = useCallback(async (entryType?: "expense" | "income"): Promise<{ ok: true; applied_months: number } | { error: string }> => {
+    setApplyingToFuture(true);
+    try {
+      return await applyFixedExpensesToFuture(monthKey, entryType);
+    } finally {
+      setApplyingToFuture(false);
+    }
+  }, [monthKey]);
+
   const handleUpdateMeta = useCallback(
     async (
       id: string,
@@ -195,5 +209,7 @@ export function useFixedExpenses(monthKey: string): UseFixedExpensesReturn {
     handleDelete,
     handleUpdateMeta,
     reload,
+    applyToFuture,
+    applyingToFuture,
   };
 }

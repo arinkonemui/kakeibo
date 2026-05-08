@@ -227,6 +227,22 @@ export async function deleteFixedExpense(
   return { ok: true };
 }
 
+export async function applyFixedExpensesToFuture(
+  monthKey: string,
+  entryType?: "expense" | "income",
+): Promise<{ ok: true; applied_months: number } | { error: string }> {
+  const res = await fetch(apiUrl("/api/fixed-expenses/apply-to-future"), {
+    method: "POST",
+    headers: { ...buildHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ month_key: monthKey, ...(entryType ? { entry_type: entryType } : {}) }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { error: (body as { error?: string }).error ?? `HTTP ${res.status}` };
+  }
+  return body as { ok: true; applied_months: number };
+}
+
 // --- Authentication ---
 
 export interface AuthResponse {

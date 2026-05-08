@@ -2,6 +2,54 @@
 
 ---
 
+## 2026-05-08T00:00+09:00 — 固定費・収入を未来月に一括反映する機能
+
+### 目的
+固定費・収入を変更した月より後の既訪問月（fixed_expenses レコードが存在する月）に、設定を一括コピーする「以降の月に反映」ボタンを実装する。未保存状態では無効化し、未来月がない場合はメッセージを表示。
+
+### 変更ファイル
+| ファイル | 内容 |
+|---|---|
+| `src/fixed-expenses.ts` | `handleApplyFixedExpensesToFuture` を追加（UPDATE + INSERT OR IGNORE のバッチ処理、D1 100件チャンク） |
+| `src/index.ts` | `/api/fixed-expenses/apply-to-future` POST ルートを追加（feMatch より前） |
+| `web/src/api.ts` | `applyFixedExpensesToFuture()` を追加 |
+| `web/src/useFixedExpenses.ts` | `applyToFuture` コールバック・`applyingToFuture` 状態を追加、`UseFixedExpensesReturn` に型定義 |
+| `web/src/FixedExpensesPanel.tsx` | `onApplyToFuture` / `editable` Props を追加。パネル最下部に「以降の月に反映」ボタンを追加 |
+| `web/src/App.tsx` | FixedExpensesPanel に `editable` / `onApplyToFuture` を渡す。`showConfirm` で確認ダイアログ、0件時 alert |
+| `web/src/index.css` | `.fixed-panel-apply-future` / `.btn-apply-future` / `.apply-future-hint` スタイルを追加 |
+
+### 決定理由
+- 伝播対象を「既存レコードがある未来月のみ」に限定し、未訪問月は従来どおり GET 時前月コピーで対応
+- 同名+同 entry_type 一致で UPDATE、存在しなければ INSERT OR IGNORE（未来月固有アイテムは削除しない）
+- isDirty 中はボタンを disabled にし、保存後のみ反映できる設計
+
+### 検証方法
+```bash
+# 1. Wrangler → Vite の順で起動
+npx wrangler dev
+cd web && npx vite
+
+# 2. ブラウザで当月の固定費を変更 → 保存
+# 3. 「以降の月に反映」ボタンをクリック → 確認 → 反映
+# 4. 翌月に切り替えて金額が引き継がれていることを確認
+# 5. isDirty 状態でボタンが disabled になることを確認
+# 6. 未来月レコードなし → "反映対象の月がありませんでした。" を確認
+
+# API 直接確認
+curl -X POST http://localhost:8787/api/fixed-expenses/apply-to-future \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"month_key":"2026-05"}'
+# → {"ok":true,"applied_months":N}
+
+npx tsc --noEmit  # フロント・バック両方エラーなし確認済み
+```
+
+### Next Actions
+- 動作検証後、本番デプロイ（`wrangler deploy`）
+
+---
+
 ## 2026-02-12T13:30+09:00 — Phase 1 / Step 1: GET /api/monthly 実装
 
 ### 目的
